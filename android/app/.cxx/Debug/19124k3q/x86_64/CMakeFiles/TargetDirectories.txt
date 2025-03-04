@@ -1,0 +1,2 @@
+D:/Kuliah Rama/Flutter/inventrack/android/app/.cxx/Debug/19124k3q/x86_64/CMakeFiles/edit_cache.dir
+D:/Kuliah Rama/Flutter/inventrack/android/app/.cxx/Debug/19124k3q/x86_64/CMakeFiles/rebuild_cache.dir

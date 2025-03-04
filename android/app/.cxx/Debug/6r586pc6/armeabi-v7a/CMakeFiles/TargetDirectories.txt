@@ -1,0 +1,2 @@
+D:/Kuliah Rama/Flutter/inventrack/android/app/.cxx/Debug/6r586pc6/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/Kuliah Rama/Flutter/inventrack/android/app/.cxx/Debug/6r586pc6/armeabi-v7a/CMakeFiles/rebuild_cache.dir

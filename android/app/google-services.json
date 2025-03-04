@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "141826416177",
+    "project_id": "inventrack-pgascom-f60a9",
+    "storage_bucket": "inventrack-pgascom-f60a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:141826416177:android:ebc5ef8ceeac8b300c3f10",
+        "android_client_info": {
+          "package_name": "com.example.inventrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0D_mCjHk2Dd8O8OnRpR7arm4fZ6bL7uo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
