@@ -6,9 +6,9 @@ import 'package:inventrack/screens/carpool/carpool_view.dart';
 import 'package:inventrack/screens/home.dart';
 import 'package:inventrack/screens/information_page.dart';
 import 'package:inventrack/screens/inventory_menu.dart';
-import 'package:inventrack/screens/loginpage.dart';
+import 'package:inventrack/screens/authscreens/loginpage.dart';
 import 'package:inventrack/screens/scanqr.dart';
-import 'package:inventrack/screens/signuppage.dart';
+import 'package:inventrack/screens/authscreens/signuppage.dart';
 import 'router_name.dart'; // Digunakan tanpa `part` agar lebih bersih
 
 final router = GoRouter(
