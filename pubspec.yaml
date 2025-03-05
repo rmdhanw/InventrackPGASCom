@@ -46,6 +46,7 @@ dependencies:
   qr_flutter: ^4.1.0
   open_file: ^3.5.10
   equatable: ^2.0.7
+  responsive_sizer: ^3.3.1
 
 dev_dependencies:
   flutter_test:

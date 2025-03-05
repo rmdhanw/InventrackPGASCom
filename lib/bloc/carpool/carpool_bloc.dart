@@ -10,7 +10,7 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
 
   Stream<QuerySnapshot<Carpool>> streamProducts() async* {
     yield* firestore
-        .collection("carpool_requests")
+        .collection("carpoolRequests")
         .withConverter<Carpool>(
           fromFirestore: (snapshot, _) => Carpool.fromJson(snapshot.data()!),
           toFirestore: (product, _) => product.toJson(),
@@ -22,7 +22,7 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
     on<CarpoolEventAdd>((event, emit) async {
       try {
         emit(CarpoolStateLoadingAdd());
-        var hasil = await firestore.collection("carpool_requests").add({
+        var hasil = await firestore.collection("carpoolRequests").add({
           "namaPengguna": event.namaPengguna,
           "satuanKerja": event.satuanKerja,
           "tujuan": event.tujuan,
@@ -36,7 +36,7 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
         });
 
         await firestore
-            .collection("carpool_requests")
+            .collection("carpoolRequests")
             .doc(hasil.id)
             .update({"id": hasil.id});
 
