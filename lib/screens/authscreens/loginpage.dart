@@ -72,14 +72,15 @@ class LoginPageState extends State<LoginPage> {
                       icon: Icons.person,
                       obscureText: false,
                       controller: email,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     SizedBox(height: size.height * 0.02),
                     _buildTextField(
-                      hintText: 'Password',
-                      icon: Icons.lock,
-                      obscureText: true,
-                      controller: password,
-                    ),
+                        hintText: 'Password',
+                        icon: Icons.lock,
+                        obscureText: true,
+                        controller: password,
+                        keyboardType: TextInputType.none),
                     SizedBox(height: size.height * 0.02),
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
@@ -161,8 +162,10 @@ class LoginPageState extends State<LoginPage> {
     required IconData icon,
     required bool obscureText,
     required TextEditingController controller,
+    required TextInputType keyboardType,
   }) {
     return TextField(
+      keyboardType: keyboardType,
       obscureText: obscureText,
       autocorrect: false,
       controller: controller,
