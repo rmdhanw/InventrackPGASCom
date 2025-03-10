@@ -13,9 +13,11 @@ class AuthEventLogin extends AuthEvent {
 }
 
 class AuthEventSignUp extends AuthEvent {
-  AuthEventSignUp(this.email, this.pass);
+  AuthEventSignUp(this.email, this.pass, this.name, this.role);
   final String email;
   final String pass;
+  final String name;
+  final String role;
 }
 
 class AuthEventLogout extends AuthEvent {}

@@ -9,7 +9,7 @@ import 'package:inventrack/screens/inventory_menu.dart';
 import 'package:inventrack/screens/authscreens/loginpage.dart';
 import 'package:inventrack/screens/scanqr.dart';
 import 'package:inventrack/screens/authscreens/signuppage.dart';
-import 'router_name.dart'; // Digunakan tanpa `part` agar lebih bersih
+import 'router_name.dart';
 
 final router = GoRouter(
   redirect: (context, state) {
@@ -17,7 +17,7 @@ final router = GoRouter(
     if (auth.currentUser == null &&
         state.uri.toString() != "/login" &&
         state.uri.toString() != "/register") {
-      return "/login"; // Redirect hanya jika belum login
+      return "/login";
     }
     return null;
   },
@@ -43,7 +43,7 @@ final router = GoRouter(
           builder: (context, state) => const CarpoolMenu(),
           routes: [
             GoRoute(
-              path: 'carpoolform', // Tanpa `/` agar tetap di dalam `/carpool`
+              path: 'carpoolform',
               name: Routes.carpoolForm,
               builder: (context, state) => CarpoolForm(),
             ),

@@ -7,22 +7,22 @@ class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
   @override
-  SignUpPageState createState() => SignUpPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class SignUpPageState extends State<SignUpPage> {
-  final TextEditingController email = TextEditingController();
-  final TextEditingController password = TextEditingController();
+class _SignUpPageState extends State<SignUpPage> {
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final name = TextEditingController();
+  final role = TextEditingController();
 
   @override
   void dispose() {
     email.dispose();
     password.dispose();
+    name.dispose();
+    role.dispose();
     super.dispose();
-  }
-
-  void _signUp() {
-    context.read<AuthBloc>().add(AuthEventSignUp(email.text, password.text));
   }
 
   @override
@@ -66,9 +66,11 @@ class SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 30),
                   _buildForm(),
                   const SizedBox(height: 20),
+                  Text("Already have an account? ",
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
                   TextButton(
                     onPressed: () => context.goNamed(Routes.login),
-                    child: const Text("Already have an account? Login",
+                    child: const Text("Login",
                         style: TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ],
@@ -89,24 +91,17 @@ class SignUpPageState extends State<SignUpPage> {
       ),
       child: Column(
         children: [
-          TextField(
-            controller: email,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.email],
-            decoration: _inputDecoration("Email", Icons.email),
-          ),
-          const SizedBox(height: 15),
-          TextField(
-            controller: password,
-            obscureText: true,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.password],
-            decoration: _inputDecoration("Password", Icons.lock),
-          ),
+          _buildTextField(name, "Name", Icons.person),
+          _buildTextField(role, "Role", Icons.work),
+          _buildTextField(email, "Email", Icons.email,
+              keyboardType: TextInputType.emailAddress),
+          _buildTextField(password, "Password", Icons.lock, obscureText: true),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: _signUp,
+            onPressed: () => context.read<AuthBloc>().add(
+                  AuthEventSignUp(
+                      email.text, password.text, name.text, role.text),
+                ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               shape: RoundedRectangleBorder(
@@ -121,11 +116,23 @@ class SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      prefixIcon: Icon(icon, color: Colors.blueAccent),
-      labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+  Widget _buildTextField(
+      TextEditingController controller, String label, IconData icon,
+      {bool obscureText = false,
+      TextInputType keyboardType = TextInputType.text}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        textInputAction: TextInputAction.next,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
     );
   }
 }

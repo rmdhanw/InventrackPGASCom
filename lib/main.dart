@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:inventrack/bloc/bloc.dart';
+import 'package:inventrack/bloc/bloc_observer.dart';
 import 'package:inventrack/routes/router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e");
+  }
+  Bloc.observer = AppBlocObserver();
   runApp(const Inventrack());
 }
 
