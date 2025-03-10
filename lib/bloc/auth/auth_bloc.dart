@@ -50,6 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         'email': event.email,
         'name': event.name,
         'createdAt': FieldValue.serverTimestamp(),
+        'handle': "user",
       });
 
       emit(AuthStateSignUp());

@@ -14,14 +14,15 @@ class _SignUpPageState extends State<SignUpPage> {
   final email = TextEditingController();
   final password = TextEditingController();
   final name = TextEditingController();
-  final role = TextEditingController();
+  String? selectedRole; // Menyimpan role yang dipilih
+
+  final List<String> roles = ["Engineer", "Driver", "Security"];
 
   @override
   void dispose() {
     email.dispose();
     password.dispose();
     name.dispose();
-    role.dispose();
     super.dispose();
   }
 
@@ -66,7 +67,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 30),
                   _buildForm(),
                   const SizedBox(height: 20),
-                  Text("Already have an account? ",
+                  const Text("Already have an account? ",
                       style: TextStyle(color: Colors.white, fontSize: 16)),
                   TextButton(
                     onPressed: () => context.goNamed(Routes.login),
@@ -88,20 +89,39 @@ class _SignUpPageState extends State<SignUpPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          )
+        ],
       ),
       child: Column(
         children: [
           _buildTextField(name, "Name", Icons.person),
-          _buildTextField(role, "Role", Icons.work),
+          _buildDropdownRole(),
           _buildTextField(email, "Email", Icons.email,
               keyboardType: TextInputType.emailAddress),
           _buildTextField(password, "Password", Icons.lock, obscureText: true),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () => context.read<AuthBloc>().add(
-                  AuthEventSignUp(
-                      email.text, password.text, name.text, role.text),
-                ),
+            onPressed: () {
+              if (selectedRole == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Please select a role"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              } else {
+                context.read<AuthBloc>().add(
+                      AuthEventSignUp(
+                          email.text, password.text, name.text, selectedRole!),
+                    );
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               shape: RoundedRectangleBorder(
@@ -112,6 +132,43 @@ class _SignUpPageState extends State<SignUpPage> {
                 style: TextStyle(color: Colors.white, fontSize: 16)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownRole() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: DropdownButtonFormField<String>(
+        value: selectedRole,
+        decoration: InputDecoration(
+          labelText: "Role",
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        items: roles.map((role) {
+          return DropdownMenuItem(
+            value: role,
+            child: Row(
+              children: [
+                Icon(
+                  role == "Engineer"
+                      ? Icons.build
+                      : role == "Driver"
+                          ? Icons.local_shipping
+                          : Icons.security,
+                  color: Colors.blueAccent,
+                ),
+                const SizedBox(width: 10),
+                Text(role),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            selectedRole = value;
+          });
+        },
       ),
     );
   }
