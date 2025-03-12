@@ -1,0 +1,2 @@
+D:/InventrackPGASCom/android/app/.cxx/Debug/6b3f213f/x86/CMakeFiles/edit_cache.dir
+D:/InventrackPGASCom/android/app/.cxx/Debug/6b3f213f/x86/CMakeFiles/rebuild_cache.dir

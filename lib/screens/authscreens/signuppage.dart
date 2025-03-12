@@ -16,7 +16,13 @@ class _SignUpPageState extends State<SignUpPage> {
   final name = TextEditingController();
   String? selectedRole;
 
-  final List<String> roles = ["Engineer", "Driver", "Security"];
+  final List<String> roles = [
+    "Manager RO",
+    "HSSE",
+    "Engineer",
+    "Driver",
+    "Security"
+  ];
 
   @override
   void dispose() {
@@ -151,11 +157,15 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Row(
               children: [
                 Icon(
-                  role == "Engineer"
-                      ? Icons.build
-                      : role == "Driver"
-                          ? Icons.local_shipping
-                          : Icons.security,
+                  role == "Manager RO"
+                      ? Icons.person
+                      : role == "HSSE"
+                          ? Icons.medical_services
+                          : role == "Engineer"
+                              ? Icons.build
+                              : role == "Driver"
+                                  ? Icons.local_shipping
+                                  : Icons.security,
                   color: Colors.blueAccent,
                 ),
                 const SizedBox(width: 10),
