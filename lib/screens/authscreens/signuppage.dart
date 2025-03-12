@@ -14,7 +14,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final email = TextEditingController();
   final password = TextEditingController();
   final name = TextEditingController();
-  String? selectedRole; // Menyimpan role yang dipilih
+  String? selectedRole;
 
   final List<String> roles = ["Engineer", "Driver", "Security"];
 
