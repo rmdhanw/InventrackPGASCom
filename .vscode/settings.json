@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/Kuliah Rama/Flutter/inventrack/linux"
+    "cmake.sourceDirectory": "D:/Kuliah Rama/Flutter/inventrack/linux",
+    "C_Cpp.errorSquiggles": "enabled"
 }
