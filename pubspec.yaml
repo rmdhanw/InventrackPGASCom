@@ -47,6 +47,8 @@ dependencies:
   open_file: ^3.5.10
   equatable: ^2.0.7
   responsive_sizer: ^3.3.1
+  firebase_dynamic_links: ^6.1.4
+  uni_links: ^0.5.1
 
 dev_dependencies:
   flutter_test:

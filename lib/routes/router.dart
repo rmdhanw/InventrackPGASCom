@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:inventrack/screens/authscreens/forgotpassword.dart';
+import 'package:inventrack/screens/authscreens/resetpasspage.dart';
 import 'package:inventrack/screens/carpool/carpool_form.dart';
 import 'package:inventrack/screens/carpool/carpool_menu.dart';
 import 'package:inventrack/screens/carpool/carpool_view.dart';
@@ -13,10 +15,18 @@ import 'router_name.dart';
 
 final router = GoRouter(
   redirect: (context, state) {
-    FirebaseAuth auth = FirebaseAuth.instance;
-    if (auth.currentUser == null &&
-        state.uri.toString() != "/login" &&
-        state.uri.toString() != "/register") {
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final isLoggedIn = auth.currentUser != null;
+
+    final isAuthPage = [
+      '/',
+      '/register',
+      '/forgotpassword',
+      '/resetpassword',
+    ].contains(state.uri.path);
+
+    // Jika user belum login dan bukan di halaman otentikasi, redirect ke login
+    if (!isLoggedIn && !isAuthPage) {
       return "/login";
     }
     return null;
@@ -33,6 +43,20 @@ final router = GoRouter(
       builder: (context, state) => const SignUpPage(),
     ),
     GoRoute(
+      path: '/forgotpassword',
+      name: Routes.forgotpassword,
+      builder: (context, state) => const ForgotPassPage(),
+    ),
+    GoRoute(
+      path: '/resetpassword',
+      name: Routes.resetpassword,
+      builder: (context, state) {
+        // Ambil `oobCode` dari query parameter URL
+        final oobCode = state.uri.queryParameters['oobCode'] ?? "";
+        return ConfirmResetPasswordPage(oobCode: oobCode);
+      },
+    ),
+    GoRoute(
       path: '/home',
       name: Routes.home,
       builder: (context, state) => const HomePage(),
@@ -43,12 +67,12 @@ final router = GoRouter(
           builder: (context, state) => const CarpoolMenu(),
           routes: [
             GoRoute(
-              path: 'carpoolform',
+              path: 'form',
               name: Routes.carpoolForm,
-              builder: (context, state) => CarpoolForm(),
+              builder: (context, state) => const CarpoolForm(),
             ),
             GoRoute(
-              path: 'carpoolview',
+              path: 'view',
               name: Routes.carpoolView,
               builder: (context, state) => const CarpoolView(),
             ),
