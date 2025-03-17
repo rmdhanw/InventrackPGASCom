@@ -121,7 +121,7 @@ class LoginPageState extends State<LoginPage> {
                     SizedBox(height: size.height * 0.015),
                     TextButton(
                       onPressed: () {
-                        // Tambahkan logika lupa password di sini
+                        context.pushNamed(Routes.forgotpassword);
                       },
                       child: const Text(
                         'Forgot Password?',
