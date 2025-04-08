@@ -27,10 +27,14 @@ class ForgotPasswordPageState extends State<ForgotPassPage> {
     _handleDeepLinks();
   }
 
-  void _handleDeepLinks() async {
+  void _handleDeepLinks() {
     uriLinkStream.listen((Uri? uri) {
       if (uri != null && uri.path == "/resetpassword") {
-        context.pushNamed(Routes.resetpassword);
+        if (mounted) {
+          context.pushNamed(Routes.resetpassword, queryParameters: {
+            'oobCode': uri.queryParameters['oobCode'] ?? '',
+          });
+        }
       }
     }, onError: (error) {
       print("Error handling deep link: $error");

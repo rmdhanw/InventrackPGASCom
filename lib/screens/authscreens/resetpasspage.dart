@@ -99,7 +99,7 @@ class _ConfirmResetPasswordPageState extends State<ConfirmResetPasswordPage> {
                 ),
                 SizedBox(height: size.height * 0.03),
                 BlocConsumer<AuthBloc, AuthState>(
-                  listener: (context, state) {
+                  listener: (context, state) async {
                     if (state is AuthStateSuccess) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -107,9 +107,18 @@ class _ConfirmResetPasswordPageState extends State<ConfirmResetPasswordPage> {
                           backgroundColor: Colors.green,
                         ),
                       );
-                      Future.delayed(const Duration(seconds: 2), () {
-                        context.goNamed(Routes.login);
-                      });
+
+                      // Store mounted state before async operation
+                      final isStillMounted = mounted;
+
+                      await Future.delayed(const Duration(seconds: 2));
+
+                      // Check if widget is still mounted before using context
+                      if (isStillMounted) {
+                        if (context.mounted) {
+                          context.goNamed(Routes.login);
+                        }
+                      }
                     } else if (state is AuthStateError) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
