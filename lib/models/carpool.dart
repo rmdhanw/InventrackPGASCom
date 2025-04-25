@@ -1,15 +1,6 @@
-class Carpool {
-  //  "namaPengguna": event.namaPengguna,
-  //         "satuanKerja": event.satuanKerja,
-  //         "tujuan": event.tujuan,
-  //         "jamBerangkat": event.jamBerangkat,
-  //         "jamKembali": event.jamKembali,
-  //         "kendaraan": event.kendaraan,
-  //         "pengemudi": event.pengemudi,
-  //         "kmAwal": event.kmAwal,
-  //         "kmAkhir": event.kmAkhir,
-  //         "createdAt": FieldValue.serverTimestamp(),
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+class Carpool {
   String? namapengguna;
   String? satuanKerja;
   String? tujuan;
@@ -19,7 +10,10 @@ class Carpool {
   String? pengemudi;
   String? kmAwal;
   String? kmAkhir;
+  String? statusDriver;
   DateTime? createdAt;
+  String id;
+  String formattedDate;
 
   Carpool({
     this.namapengguna,
@@ -32,6 +26,9 @@ class Carpool {
     this.kmAwal,
     this.kmAkhir,
     this.createdAt,
+    required this.id,
+    this.statusDriver,
+    required this.formattedDate,
   });
 
   factory Carpool.fromJson(Map<String, dynamic> json) => Carpool(
@@ -44,9 +41,12 @@ class Carpool {
         pengemudi: json["pengemudi"] ?? "",
         kmAwal: json["kmAwal"] ?? "",
         kmAkhir: json["kmAkhir"] ?? "",
+        statusDriver: json["statusDriver"] ?? "",
         createdAt: json["createdAt"] != null
-            ? DateTime.fromMillisecondsSinceEpoch(json["createdAt"])
+            ? (json["createdAt"] as Timestamp).toDate()
             : null,
+        id: json["id"] ?? "",
+        formattedDate: json["formattedDate"] ?? "",
       );
 
   Map<String, dynamic> toJson() => {
@@ -59,6 +59,9 @@ class Carpool {
         "pengemudi": pengemudi,
         "kmAwal": kmAwal,
         "kmAkhir": kmAkhir,
-        "createdAt": createdAt?.millisecondsSinceEpoch,
+        "statusDriver": statusDriver,
+        "createdAt": createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+        "id": id,
+        "formattedDate": formattedDate,
       };
 }

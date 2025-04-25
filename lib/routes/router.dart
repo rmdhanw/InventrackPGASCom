@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:inventrack/models/carpool.dart';
 import 'package:inventrack/screens/authscreens/forgotpassword.dart';
 import 'package:inventrack/screens/authscreens/resetpasspage.dart';
+import 'package:inventrack/screens/carpool/carpool_detail.dart';
 import 'package:inventrack/screens/carpool/carpool_form.dart';
 import 'package:inventrack/screens/carpool/carpool_menu.dart';
 import 'package:inventrack/screens/carpool/carpool_view.dart';
@@ -25,7 +27,6 @@ final router = GoRouter(
       '/resetpassword',
     ].contains(state.uri.path);
 
-    // Jika user belum login dan bukan di halaman otentikasi, redirect ke login
     if (!isLoggedIn && !isAuthPage) {
       return "/login";
     }
@@ -51,9 +52,7 @@ final router = GoRouter(
       path: '/resetpassword',
       name: Routes.resetpassword,
       builder: (context, state) {
-        // Ambil `oobCode` dari query parameter URL
-        final oobCode = state.uri.queryParameters['oobCode'] ?? "";
-        return ConfirmResetPasswordPage(oobCode: oobCode);
+        return ConfirmResetPasswordPage();
       },
     ),
     GoRoute(
@@ -75,6 +74,18 @@ final router = GoRouter(
               path: 'view',
               name: Routes.carpoolView,
               builder: (context, state) => const CarpoolView(),
+              routes: [
+                GoRoute(
+                  path: '/carpoolDetail/:id',
+                  name: Routes.carpoolDetail,
+                  builder: (context, state) {
+                    return CarpoolDetail(
+                      state.pathParameters['id'].toString(),
+                      state.extra as Carpool,
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),

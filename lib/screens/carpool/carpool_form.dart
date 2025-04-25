@@ -1,65 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inventrack/bloc/carpool/carpool_bloc.dart';
+import 'package:inventrack/widgets/logo_pgascom.dart';
 
 class CarpoolForm extends StatefulWidget {
   const CarpoolForm({super.key});
 
   @override
-  CarpoolFormState createState() => CarpoolFormState();
+  State<CarpoolForm> createState() => _CarpoolFormState();
 }
 
-class CarpoolFormState extends State<CarpoolForm> {
-  final TextEditingController _namaPenggunaController = TextEditingController();
-  final TextEditingController _satuanKerjaController = TextEditingController();
-  final TextEditingController _tujuanController = TextEditingController();
-  final TextEditingController _jamBerangkatController = TextEditingController();
-  final TextEditingController _jamKembaliController = TextEditingController();
-  final TextEditingController _kendaraanController = TextEditingController();
-  final TextEditingController _pengemudiController = TextEditingController();
-  final TextEditingController _kmAwalController = TextEditingController();
-  final TextEditingController _kmAkhirController = TextEditingController();
+class _CarpoolFormState extends State<CarpoolForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  final namaPenggunaController = TextEditingController();
+  final tujuanController = TextEditingController();
+  final jamBerangkatController = TextEditingController();
+  final jamKembaliController = TextEditingController();
+  final kendaraanController = TextEditingController();
+  final kmAwalController = TextEditingController();
+  final kmAkhirController = TextEditingController();
+
+  final _satkerOptions = ["PGNCom", "GasNet"];
+  final _statusDriverOptions = ["On Duty", "Arrived", "Off Duty"];
+  List<String> _driverOptions = [];
+
+  String? _selectedSatker;
+  String? _selectedStatusDriver;
+  String? _selectedDriver;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDrivers();
+  }
+
+  Future<void> _loadDrivers() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("roles")
+          .doc("Driver")
+          .collection("users")
+          .get();
+
+      setState(() {
+        _driverOptions =
+            snapshot.docs.map((doc) => doc.data()["name"] as String).toList();
+      });
+    } catch (e) {
+      debugPrint("Gagal memuat driver: $e");
+    }
+  }
 
   @override
   void dispose() {
-    _namaPenggunaController.dispose();
-    _satuanKerjaController.dispose();
-    _tujuanController.dispose();
-    _jamBerangkatController.dispose();
-    _jamKembaliController.dispose();
-    _kendaraanController.dispose();
-    _pengemudiController.dispose();
-    _kmAwalController.dispose();
-    _kmAkhirController.dispose();
+    namaPenggunaController.dispose();
+    tujuanController.dispose();
+    jamBerangkatController.dispose();
+    jamKembaliController.dispose();
+    kendaraanController.dispose();
+    kmAwalController.dispose();
+    kmAkhirController.dispose();
     super.dispose();
   }
 
   void _submitForm() {
-    if (_namaPenggunaController.text.isEmpty ||
-        _satuanKerjaController.text.isEmpty ||
-        _tujuanController.text.isEmpty ||
-        _jamBerangkatController.text.isEmpty ||
-        _jamKembaliController.text.isEmpty ||
-        _kendaraanController.text.isEmpty ||
-        _pengemudiController.text.isEmpty ||
-        _kmAwalController.text.isEmpty ||
-        _kmAkhirController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap isi semua field')),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     context.read<CarpoolBloc>().add(CarpoolEventAdd(
-          namaPengguna: _namaPenggunaController.text,
-          satuanKerja: _satuanKerjaController.text,
-          tujuan: _tujuanController.text,
-          jamBerangkat: _jamBerangkatController.text,
-          jamKembali: _jamKembaliController.text,
-          kendaraan: _kendaraanController.text,
-          pengemudi: _pengemudiController.text,
-          kmAwal: _kmAwalController.text,
-          kmAkhir: _kmAkhirController.text,
+          namaPengguna: namaPenggunaController.text,
+          satuanKerja: _selectedSatker ?? '',
+          tujuan: tujuanController.text,
+          jamBerangkat: jamBerangkatController.text,
+          jamKembali: jamKembaliController.text,
+          kendaraan: kendaraanController.text,
+          pengemudi: _selectedDriver ?? '',
+          kmAwal: kmAwalController.text,
+          statusDriver: _selectedStatusDriver ?? '',
         ));
   }
 
@@ -67,119 +85,117 @@ class CarpoolFormState extends State<CarpoolForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'CARPOOL FORM',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('CARPOOL FORM',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blue,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       backgroundColor: Colors.blue,
       body: BlocListener<CarpoolBloc, CarpoolState>(
         listener: (context, state) {
           if (state is CarpoolStateCompleteAdd) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Data berhasil ditambahkan ke Firestore')),
-            );
+                const SnackBar(content: Text('Data berhasil tersimpan')));
             Navigator.pop(context);
           } else if (state is CarpoolStateError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          buildTextField(
-                              'Nama Pengguna', _namaPenggunaController),
-                          buildTextField(
-                              'Satuan Kerja', _satuanKerjaController),
-                          buildTextField('Tujuan', _tujuanController),
-                          buildTextField(
-                              'Jam Berangkat', _jamBerangkatController),
-                          buildTextField('Jam Kembali', _jamKembaliController),
-                          buildTextField(
-                              'Kendaraan / No. Polisi', _kendaraanController),
-                          buildTextField('Pengemudi', _pengemudiController),
-                          buildTextField('KM Awal', _kmAwalController),
-                          buildTextField('KM Akhir', _kmAkhirController),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ButtonStyle(
-                                  backgroundColor: WidgetStateProperty.all(
-                                      Colors.blue[100])),
-                              onPressed: _submitForm,
-                              child: const Text(
-                                'Submit',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+          child: Container(
+            padding: const EdgeInsets.all(25),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+            ),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  const SizedBox(height: 10),
+                  const CompanyLogo(),
+                  const SizedBox(height: 10),
+                  _buildTextField('Nama Pengguna', namaPenggunaController),
+                  _buildDropdown(
+                      'Satuan Kerja',
+                      _satkerOptions,
+                      _selectedSatker,
+                      (val) => setState(() => _selectedSatker = val)),
+                  _buildTextField('Tujuan', tujuanController),
+                  _buildTextField('Jam Berangkat', jamBerangkatController),
+                  _buildTextField('Jam Kembali', jamKembaliController),
+                  _buildTextField('No. Polisi', kendaraanController),
+                  _buildDropdown('Driver', _driverOptions, _selectedDriver,
+                      (val) => setState(() => _selectedDriver = val)),
+                  _buildTextField('KM Awal', kmAwalController, isNumber: true),
+                  _buildDropdown(
+                      'Status Driver',
+                      _statusDriverOptions,
+                      _selectedStatusDriver,
+                      (val) => setState(() => _selectedStatusDriver = val)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[100],
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
+                    onPressed: _submitForm,
+                    child: const Text('Submit',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.black)),
                   ),
-                ),
-              );
-            },
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller,
+      {bool isNumber = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.blue[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
+      child: TextFormField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        validator: (value) =>
+            (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.blue[100],
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String label, List<String> items, String? selectedValue,
+      Function(String?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.blue[100],
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        value: selectedValue,
+        items: items
+            .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+            .toList(),
+        onChanged: onChanged,
+        validator: (value) => value == null ? 'Pilih $label' : null,
       ),
     );
   }

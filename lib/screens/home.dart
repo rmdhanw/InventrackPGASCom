@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:inventrack/bloc/bloc.dart';
 import 'package:inventrack/routes/router_name.dart';
 import 'package:inventrack/widgets/header_widget.dart';
+import 'package:inventrack/widgets/logo_pgascom.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -28,7 +29,7 @@ class HomePage extends StatelessWidget {
                     ..._menuItems.map((item) => _buildMenuItem(context,
                         item['icon']!, item['title']!, item['route']!)),
                     const SizedBox(height: 60),
-                    Image.asset('images/logopgascom1.png', height: 100),
+                    CompanyLogo(),
                   ],
                 ),
               ),

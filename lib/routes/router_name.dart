@@ -15,9 +15,13 @@ abstract class Routes {
 
   static const String carpoolView = 'carpoolView';
 
+  static const String carpoolDetail = 'carpoolDetail';
+
   static const String inventoryMenu = 'inventoryMenu';
 
   static const String scanQR = 'scanQR';
 
   static const String information = 'information';
+
+  static String detailCarpool = 'detailCarpool';
 }

@@ -11,7 +11,8 @@ class CarpoolEventAdd extends CarpoolEvent {
   final String kendaraan;
   final String pengemudi;
   final String kmAwal;
-  final String kmAkhir;
+  // final String kmAkhir;
+  final String statusDriver;
 
   CarpoolEventAdd({
     required this.namaPengguna,
@@ -22,7 +23,38 @@ class CarpoolEventAdd extends CarpoolEvent {
     required this.kendaraan,
     required this.pengemudi,
     required this.kmAwal,
+    // required this.kmAkhir,
+    required this.statusDriver,
+  });
+}
+
+class CarpoolEventEditCarpool extends CarpoolEvent {
+  final String namaPengguna;
+  final String satuanKerja;
+  final String tujuan;
+  final String jamBerangkat;
+  final String jamKembali;
+  final String kendaraan;
+  final String pengemudi;
+  final String kmAwal;
+  final String kmAkhir;
+  final String statusDriver;
+  final String documentId;
+  final String formattedDate;
+
+  CarpoolEventEditCarpool({
+    required this.namaPengguna,
+    required this.satuanKerja,
+    required this.tujuan,
+    required this.jamBerangkat,
+    required this.jamKembali,
+    required this.kendaraan,
+    required this.pengemudi,
+    required this.kmAwal,
     required this.kmAkhir,
+    required this.statusDriver,
+    required this.documentId,
+    required this.formattedDate,
   });
 }
 
