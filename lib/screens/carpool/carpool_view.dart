@@ -129,7 +129,7 @@ class _CarpoolViewState extends State<CarpoolView> {
                   itemBuilder: (context, index) {
                     Carpool carpool = allCarpool[index];
                     return Card(
-                      color: Colors.amber,
+                      color: Colors.blue[100],
                       elevation: 5,
                       margin: const EdgeInsets.only(bottom: 20),
                       shape: RoundedRectangleBorder(
