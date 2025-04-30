@@ -39,7 +39,43 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
 
         emit(CarpoolStateCompleteAdd());
       } on FirebaseException catch (e) {
-        emit(CarpoolStateError(e.message ?? "Gagal menyimpan data"));
+        emit(CarpoolStateError(e.message ?? "Gagal Menambah Carpool"));
+      } catch (e) {
+        emit(CarpoolStateError("Terjadi kesalahan, coba lagi"));
+      }
+    });
+
+    on<CarpoolEventAddRequest>((event, emit) async {
+      try {
+        emit(CarpoolStateLoadingAdd());
+
+        final now = DateTime.now();
+        final formattedDate =
+            "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
+
+        final docRef = await firestore
+            .collection("carpool")
+            .doc(formattedDate)
+            .collection("carpoolRequest")
+            .add({
+          "namaPengguna": event.namaPengguna,
+          "satuanKerja": event.satuanKerja,
+          "tujuan": event.tujuan,
+          "jamBerangkat": event.jamBerangkat,
+          "jamKembali": event.jamKembali,
+          "kendaraan": "-",
+          "pengemudi": "-",
+          "kmAwal": "-",
+          "kmAkhir": "-",
+          "statusDriver": "-",
+          "createdAt": FieldValue.serverTimestamp(),
+        });
+
+        await docRef.update({"id": docRef.id});
+
+        emit(CarpoolStateCompleteAdd());
+      } on FirebaseException catch (e) {
+        emit(CarpoolStateError(e.message ?? "Gagal Menambah Carpool"));
       } catch (e) {
         emit(CarpoolStateError("Terjadi kesalahan, coba lagi"));
       }
@@ -48,13 +84,18 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
     on<CarpoolEventEditCarpool>((event, emit) async {
       try {
         emit(CarpoolStateLoadingEdit());
-        // Mengedit product ke firebase
-        await firestore
-            .collection("carpool")
-            .doc(event.formattedDate)
-            .collection("carpoolItems")
-            .doc(event.documentId)
-            .update({
+        final QuerySnapshot querySnapshot = await firestore
+            .collectionGroup("carpoolItems")
+            .where("id", isEqualTo: event.id)
+            .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          emit(CarpoolStateError("Document not found with ID: ${event.id}"));
+          return;
+        }
+        final docRef = querySnapshot.docs[0].reference;
+
+        await docRef.update({
           "namaPengguna": event.namaPengguna,
           "satuanKerja": event.satuanKerja,
           "tujuan": event.tujuan,
@@ -65,24 +106,55 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
           "kmAwal": event.kmAwal,
           "kmAkhir": event.kmAkhir,
           "statusDriver": event.statusDriver,
-          // createdAt biasanya tidak perlu di-update, tapi bisa juga kalau kamu perlu
         });
 
         emit(CarpoolStateCompleteEdit());
-      } on FirebaseException catch (e) {
-        emit(CarpoolStateError(e.message ?? "Tidak dapat menambah Carpool"));
       } catch (e) {
-        emit(CarpoolStateError("Tidak dapat menambah carpool"));
+        emit(CarpoolStateError("Tidak dapat merubah carpool: $e"));
+      }
+    });
+
+    on<CarpoolEventDelete>((event, emit) async {
+      try {
+        emit(CarpoolStateLoadingDelete());
+        await firestore
+            .collectionGroup("carpoolItems")
+            .where("id", isEqualTo: event.id)
+            .get()
+            .then((snapshot) async {
+          for (var doc in snapshot.docs) {
+            await doc.reference.delete();
+          }
+        });
+
+        emit(CarpoolStateCompleteDelete());
+      } on FirebaseException catch (e) {
+        emit(CarpoolStateError(e.message ?? "Gagal menghapus carpool"));
+      } catch (e) {
+        emit(CarpoolStateError("Terjadi kesalahan, coba lagi"));
       }
     });
   }
 
-  /// Stream data carpool berdasarkan tanggal
   Stream<QuerySnapshot<Carpool>> streamCarpoolByDate(String formattedDate) {
     return firestore
         .collection("carpool")
         .doc(formattedDate)
         .collection("carpoolItems")
+        .orderBy("createdAt", descending: true)
+        .withConverter<Carpool>(
+          fromFirestore: (snapshot, _) => Carpool.fromJson(snapshot.data()!),
+          toFirestore: (carpool, _) => carpool.toJson(),
+        )
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Carpool>> streamCarpoolRequestByDate(
+      String formattedDate) {
+    return firestore
+        .collection("carpool")
+        .doc(formattedDate)
+        .collection("carpoolRequest")
         .orderBy("createdAt", descending: true)
         .withConverter<Carpool>(
           fromFirestore: (snapshot, _) => Carpool.fromJson(snapshot.data()!),
@@ -99,7 +171,6 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
         .snapshots();
   }
 
-  /// Optional: Format tanggal hari ini
   String getTodayDateFormatted() {
     final now = DateTime.now();
     return "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";

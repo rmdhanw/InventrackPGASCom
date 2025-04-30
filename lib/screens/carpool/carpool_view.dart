@@ -83,7 +83,7 @@ class _CarpoolViewState extends State<CarpoolView> {
                         value: selectedDriver,
                         items: [
                           const DropdownMenuItem(
-                              value: null, child: Text("Semua")),
+                              value: "Semua", child: Text("Semua")),
                           ...drivers.map((driver) => DropdownMenuItem(
                                 value: driver,
                                 child: Text(driver),
@@ -115,6 +115,7 @@ class _CarpoolViewState extends State<CarpoolView> {
                     .map((e) => e.data())
                     .where((item) =>
                         selectedDriver == null ||
+                        selectedDriver == "Semua" ||
                         item.pengemudi == selectedDriver)
                     .toList();
 
@@ -165,6 +166,14 @@ class _CarpoolViewState extends State<CarpoolView> {
                               const SizedBox(height: 4),
                               Text(
                                 "Tujuan: ${carpool.tujuan ?? '-'}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Status : ${carpool.statusDriver ?? '-'}",
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.black54,

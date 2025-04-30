@@ -59,8 +59,8 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
               onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
           TextButton(
               onPressed: () {
-                Navigator.pop(ctx);
                 _updateData();
+                Navigator.pop(ctx);
               },
               child: const Text("Ya")),
         ],
@@ -91,8 +91,17 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
   void _updateData() {
     if (!_formKey.currentState!.validate()) return;
 
+    String formattedDate = widget.carpool.formattedDate;
+    if (formattedDate.isEmpty) {
+      // Use today's date if formattedDate is empty
+      final now = DateTime.now();
+      formattedDate =
+          "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
+    }
+    _selectedDriver ??= widget.carpool.pengemudi;
+
     context.read<CarpoolBloc>().add(CarpoolEventEditCarpool(
-          documentId: widget.id,
+          id: widget.id,
           namaPengguna: namaPenggunaController.text,
           satuanKerja: _selectedSatker!,
           tujuan: tujuanController.text,
@@ -115,69 +124,96 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title:
-            const Text("Detail Carpool", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue,
-      ),
-      body: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(25),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildTextField('Nama Pengguna', namaPenggunaController),
-                    _buildDropdown(
-                        'Satuan Kerja',
-                        ['PGNCom', 'GasNet'],
-                        _selectedSatker,
-                        (val) => setState(() => _selectedSatker = val)),
-                    _buildTextField('Tujuan', tujuanController),
-                    _buildTextField('Jam Berangkat', jamBerangkatController),
-                    _buildTextField('Jam Kembali', jamKembaliController),
-                    _buildTextField('No. Polisi', kendaraanController),
-                    _buildTextField('KM Awal', kmAwalController,
-                        isNumber: true),
-                    _buildTextField('KM Akhir', kmAkhirController,
-                        isNumber: true),
-                    _buildDropdown(
-                        'Status Driver',
-                        ['On Duty', 'Arrived', 'Off Duty'],
-                        _selectedStatusDriver,
-                        (val) => setState(() => _selectedStatusDriver = val)),
-                  ],
+    return BlocListener<CarpoolBloc, CarpoolState>(
+      listener: (context, state) {
+        if (state is CarpoolStateCompleteEdit) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Data berhasil diperbarui')));
+          Navigator.pop(context); // kembali ke layar sebelumnya
+        } else if (state is CarpoolStateError) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Detail Carpool",
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.blue,
+        ),
+        body: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(25),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _buildTextField('Nama Pengguna', namaPenggunaController),
+                      _buildDropdown(
+                          'Satuan Kerja',
+                          ['PGNCom', 'GasNet'],
+                          _selectedSatker,
+                          (val) => setState(() => _selectedSatker = val)),
+                      _buildTextField('Tujuan', tujuanController),
+                      _buildTextField('Jam Berangkat', jamBerangkatController),
+                      _buildTextField('Jam Kembali', jamKembaliController),
+                      _buildTextField('No. Polisi', kendaraanController),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: TextFormField(
+                          initialValue: _selectedDriver,
+                          readOnly: true,
+                          enabled: false,
+                          decoration: InputDecoration(
+                            labelText: 'Pengemudi (tidak dapat diubah)',
+                            filled: true,
+                            fillColor: Colors.grey[200],
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      _buildTextField('KM Awal', kmAwalController,
+                          isNumber: true),
+                      _buildTextField('KM Akhir', kmAkhirController,
+                          isNumber: true),
+                      _buildDropdown(
+                          'Status Driver',
+                          ['On Duty', 'Arrived', 'Off Duty'],
+                          _selectedStatusDriver,
+                          (val) => setState(() => _selectedStatusDriver = val)),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _confirmUpdate,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[100]),
-                      child: const Text("Simpan Perubahan",
-                          style: TextStyle(color: Colors.black)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _confirmUpdate,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[100]),
+                        child: const Text("Simpan Perubahan",
+                            style: TextStyle(color: Colors.black)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _confirmDelete,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[100]),
-                      child: const Text("Hapus Data",
-                          style: TextStyle(color: Colors.red)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _confirmDelete,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[100]),
+                        child: const Text("Hapus Data",
+                            style: TextStyle(color: Colors.red)),
+                      ),
                     ),
-                  ),
-                ],
-              )
-            ],
+                  ],
+                )
+              ],
+            ),
           ),
         ),
       ),

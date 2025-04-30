@@ -72,9 +72,19 @@ class CarpoolMenu extends StatelessWidget {
 
   static final List<Map<String, dynamic>> _menuItems = [
     {
+      'icon': Icons.request_page,
+      'title': "Request Carpool",
+      'route': Routes.carpoolRequest
+    },
+    {
       'icon': Icons.library_add,
       'title': "Form Carpool",
       'route': Routes.carpoolForm
+    },
+    {
+      'icon': Icons.view_list,
+      'title': "View Carpool Requests",
+      'route': Routes.carpoolViewRequest
     },
     {
       'icon': Icons.view_list,

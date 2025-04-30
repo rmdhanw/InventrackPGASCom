@@ -24,4 +24,8 @@ abstract class Routes {
   static const String information = 'information';
 
   static String detailCarpool = 'detailCarpool';
+
+  static String carpoolRequest = 'carpoolRequest';
+
+  static String carpoolViewRequest = 'carpoolViewRequest';
 }

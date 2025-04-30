@@ -6,6 +6,8 @@ class CarpoolStateInitial extends CarpoolState {}
 
 class CarpoolStateLoadingAdd extends CarpoolState {}
 
+class CarpoolStateLoadingAddRequest extends CarpoolState {}
+
 class CarpoolStateLoadingEdit extends CarpoolState {}
 
 class CarpoolStateLoadingDelete extends CarpoolState {}

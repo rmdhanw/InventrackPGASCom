@@ -7,6 +7,8 @@ import 'package:inventrack/screens/carpool/carpool_detail.dart';
 import 'package:inventrack/screens/carpool/carpool_form.dart';
 import 'package:inventrack/screens/carpool/carpool_menu.dart';
 import 'package:inventrack/screens/carpool/carpool_view.dart';
+import 'package:inventrack/screens/carpool/carpoolrequest_form.dart';
+import 'package:inventrack/screens/carpool/carpoolrequest_view.dart';
 import 'package:inventrack/screens/home.dart';
 import 'package:inventrack/screens/information_page.dart';
 import 'package:inventrack/screens/inventory_menu.dart';
@@ -86,6 +88,16 @@ final router = GoRouter(
                   },
                 ),
               ],
+            ),
+            GoRoute(
+              path: 'carpoolRequest',
+              name: Routes.carpoolRequest,
+              builder: (context, state) => const RequestCarpool(),
+            ),
+            GoRoute(
+              path: 'carpoolViewRequest',
+              name: Routes.carpoolViewRequest,
+              builder: (context, state) => const CarpoolViewRequest(),
             ),
           ],
         ),
