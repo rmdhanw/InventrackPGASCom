@@ -10,6 +10,9 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTabletOrLarger = screenSize.width >= 600;
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthStateLogout) context.goNamed(Routes.login);
@@ -17,52 +20,49 @@ class HomePage extends StatelessWidget {
       child: Scaffold(
         body: Column(
           children: [
-            HeaderWidget(),
+            const HeaderWidget(),
             Expanded(
               child: Container(
-                alignment: Alignment.center,
                 color: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ListView(
-                  children: [
-                    const SizedBox(height: 20),
-                    ..._menuItems.map((item) => _buildMenuItem(context,
-                        item['icon']!, item['title']!, item['route']!)),
-                    const SizedBox(height: 60),
-                    CompanyLogo(),
-                  ],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossAxisCount = isTabletOrLarger ? 2 : 1;
+                        return Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 20,
+                                mainAxisSpacing: 15,
+                                childAspectRatio: 3.5,
+                              ),
+                              itemCount: _menuItems.length,
+                              itemBuilder: (context, index) {
+                                final item = _menuItems[index];
+                                return _AnimatedMenuItem(
+                                  icon: item['icon'],
+                                  title: item['title'],
+                                  routeName: item['route'],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 60),
+                            const CompanyLogo(),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Item menu utama
-  Widget _buildMenuItem(
-      BuildContext context, IconData icon, String title, String route) {
-    return GestureDetector(
-      onTap: () => GoRouter.of(context).goNamed(route),
-      child: Container(
-        height: 80,
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.blue.shade800, size: 40),
-            const SizedBox(width: 15),
-            Text(
-              title,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.blue.shade800),
             ),
           ],
         ),
@@ -74,14 +74,90 @@ class HomePage extends StatelessWidget {
     {
       'icon': Icons.car_rental_sharp,
       'title': "CARPOOL",
-      'route': Routes.carpoolMenu
+      'route': Routes.carpoolMenu,
     },
     {
       'icon': Icons.inventory,
       'title': "INVENTORY",
-      'route': Routes.inventoryMenu
+      'route': Routes.inventoryMenu,
     },
-    {'icon': Icons.qr_code, 'title': "SCAN QR", 'route': Routes.scanQR},
-    {'icon': Icons.info, 'title': "INFORMATION", 'route': Routes.information},
   ];
+}
+
+class _AnimatedMenuItem extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String routeName;
+
+  const _AnimatedMenuItem({
+    required this.icon,
+    required this.title,
+    required this.routeName,
+  });
+
+  @override
+  State<_AnimatedMenuItem> createState() => _AnimatedMenuItemState();
+}
+
+class _AnimatedMenuItemState extends State<_AnimatedMenuItem> {
+  double _scale = 1.0;
+
+  void _onTapDown(_) {
+    setState(() => _scale = 0.95);
+  }
+
+  void _onTapUp(_) {
+    setState(() => _scale = 1.0);
+  }
+
+  void _onTapCancel() {
+    setState(() => _scale = 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 400;
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: () => GoRouter.of(context).goNamed(widget.routeName),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(2, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(widget.icon, color: Colors.blue.shade800, size: 32),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 14 : 16,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

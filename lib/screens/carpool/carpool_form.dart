@@ -14,16 +14,30 @@ class CarpoolForm extends StatefulWidget {
 class _CarpoolFormState extends State<CarpoolForm> {
   final _formKey = GlobalKey<FormState>();
 
-  final namaPenggunaController = TextEditingController();
+  final namaPenumpangController = TextEditingController();
   final tujuanController = TextEditingController();
+  final keperluanController = TextEditingController();
   final jamBerangkatController = TextEditingController();
   final jamKembaliController = TextEditingController();
   final kendaraanController = TextEditingController();
   final kmAwalController = TextEditingController();
   final kmAkhirController = TextEditingController();
 
-  final _satkerOptions = ["PGNCom", "GasNet"];
-  final _statusDriverOptions = ["On Duty", "Arrived", "Off Duty"];
+  final _satkerOptions = [
+    'ICS',
+    'Offtake',
+    'PMD',
+    'LPS',
+    'SIRKOM',
+    'Komersial',
+    'Office',
+    'OSM',
+    'Project',
+    'ICT',
+    'Tamu',
+    'Lainnya'
+  ];
+  final _statusDriverOptions = ['Bertugas', 'Stand by', 'Cuti'];
   List<String> _driverOptions = [];
 
   String? _selectedSatker;
@@ -55,8 +69,9 @@ class _CarpoolFormState extends State<CarpoolForm> {
 
   @override
   void dispose() {
-    namaPenggunaController.dispose();
+    namaPenumpangController.dispose();
     tujuanController.dispose();
+    keperluanController.dispose();
     jamBerangkatController.dispose();
     jamKembaliController.dispose();
     kendaraanController.dispose();
@@ -69,9 +84,11 @@ class _CarpoolFormState extends State<CarpoolForm> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<CarpoolBloc>().add(CarpoolEventAdd(
-          namaPengguna: namaPenggunaController.text,
+          namaPengguna: 'Bypass',
+          namaPenumpang: namaPenumpangController.text,
           satuanKerja: _selectedSatker ?? '',
           tujuan: tujuanController.text,
+          keperluan: keperluanController.text,
           jamBerangkat: jamBerangkatController.text,
           jamKembali: jamKembaliController.text,
           kendaraan: kendaraanController.text,
@@ -81,11 +98,31 @@ class _CarpoolFormState extends State<CarpoolForm> {
         ));
   }
 
+  Future<void> _selectTime24H(
+      BuildContext context, TextEditingController controller) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final formattedTime =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      controller.text = formattedTime;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CARPOOL FORM',
+        title: const Text('BYPASS CARPOOL',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blue,
@@ -122,15 +159,22 @@ class _CarpoolFormState extends State<CarpoolForm> {
                   const SizedBox(height: 10),
                   const CompanyLogo(),
                   const SizedBox(height: 10),
-                  _buildTextField('Nama Pengguna', namaPenggunaController),
-                  _buildDropdown(
-                      'Satuan Kerja',
-                      _satkerOptions,
-                      _selectedSatker,
+                  _buildTextField('Nama Penumpang', namaPenumpangController),
+                  _buildDropdown('Tim Request', _satkerOptions, _selectedSatker,
                       (val) => setState(() => _selectedSatker = val)),
                   _buildTextField('Tujuan', tujuanController),
-                  _buildTextField('Jam Berangkat', jamBerangkatController),
-                  _buildTextField('Jam Kembali', jamKembaliController),
+                  _buildTextField('Keperluan', keperluanController),
+                  _buildTextField(
+                    'Jam Berangkat',
+                    jamBerangkatController,
+                    onTap: () =>
+                        _selectTime24H(context, jamBerangkatController),
+                  ),
+                  _buildTextField(
+                    'Jam Kembali',
+                    jamKembaliController,
+                    onTap: () => _selectTime24H(context, jamKembaliController),
+                  ),
                   _buildTextField('No. Polisi', kendaraanController),
                   _buildDropdown('Driver', _driverOptions, _selectedDriver,
                       (val) => setState(() => _selectedDriver = val)),
@@ -161,14 +205,16 @@ class _CarpoolFormState extends State<CarpoolForm> {
   }
 
   Widget _buildTextField(String label, TextEditingController controller,
-      {bool isNumber = false}) {
+      {bool isNumber = false, VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: TextFormField(
         controller: controller,
+        readOnly: onTap != null,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         validator: (value) =>
             (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null,
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
           filled: true,

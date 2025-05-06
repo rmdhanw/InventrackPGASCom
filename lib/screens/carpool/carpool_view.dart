@@ -23,7 +23,7 @@ class _CarpoolViewState extends State<CarpoolView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Daftar Carpool",
+          "CARPOOL SERVICES",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blue,
@@ -157,7 +157,14 @@ class _CarpoolViewState extends State<CarpoolView> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                "Pengguna: ${carpool.namapengguna ?? '-'}",
+                                "Pemohon: ${carpool.namapengguna ?? '-'}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              Text(
+                                "Penumpang: ${carpool.namaPenumpang ?? '-'}",
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.black54,
@@ -173,7 +180,31 @@ class _CarpoolViewState extends State<CarpoolView> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "Status : ${carpool.statusDriver ?? '-'}",
+                                "Keperluan: ${carpool.keperluan ?? '-'}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Jam Berangkat: ${carpool.jamBerangkat ?? '-'}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Jam Kembali: ${carpool.jamKembali ?? '-'}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Status Driver: ${carpool.statusDriver ?? '-'}",
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.black54,

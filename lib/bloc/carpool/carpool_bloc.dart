@@ -25,14 +25,17 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
           "namaPengguna": event.namaPengguna,
           "satuanKerja": event.satuanKerja,
           "tujuan": event.tujuan,
+          "keperluan": event.keperluan,
           "jamBerangkat": event.jamBerangkat,
           "jamKembali": event.jamKembali,
           "kendaraan": event.kendaraan,
           "pengemudi": event.pengemudi,
           "kmAwal": event.kmAwal,
-          "kmAkhir": "-",
+          "kmAkhir": null,
           "statusDriver": event.statusDriver,
           "createdAt": FieldValue.serverTimestamp(),
+          "formattedDate": formattedDate,
+          "namaPenumpang": event.namaPenumpang,
         });
 
         await docRef.update({"id": docRef.id});
@@ -61,14 +64,18 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
           "namaPengguna": event.namaPengguna,
           "satuanKerja": event.satuanKerja,
           "tujuan": event.tujuan,
+          "keperluan": event.keperluan,
           "jamBerangkat": event.jamBerangkat,
           "jamKembali": event.jamKembali,
-          "kendaraan": "-",
-          "pengemudi": "-",
-          "kmAwal": "-",
-          "kmAkhir": "-",
-          "statusDriver": "-",
+          "kendaraan": null,
+          "pengemudi": null,
+          "kmAwal": null,
+          "kmAkhir": null,
+          "statusDriver": null,
           "createdAt": FieldValue.serverTimestamp(),
+          "tanggalRequest": event.tanggalRequest,
+          "formattedDate": formattedDate,
+          "namaPenumpang": event.namaPenumpang,
         });
 
         await docRef.update({"id": docRef.id});
@@ -84,6 +91,43 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
     on<CarpoolEventEditCarpool>((event, emit) async {
       try {
         emit(CarpoolStateLoadingEdit());
+
+        // Coba ambil dengan path lengkap jika formattedDate tersedia
+        if (event.formattedDate.isNotEmpty) {
+          try {
+            final docRef = firestore
+                .collection("carpool")
+                .doc(event.formattedDate)
+                .collection("carpoolItems")
+                .doc(event.id);
+
+            final docSnapshot = await docRef.get();
+
+            if (docSnapshot.exists) {
+              await docRef.update({
+                "namaPengguna": event.namaPengguna,
+                "satuanKerja": event.satuanKerja,
+                "tujuan": event.tujuan,
+                "keperluan": event.keperluan,
+                "jamBerangkat": event.jamBerangkat,
+                "jamKembali": event.jamKembali,
+                "kendaraan": event.kendaraan,
+                "pengemudi": event.pengemudi,
+                "kmAwal": event.kmAwal,
+                "kmAkhir": event.kmAkhir,
+                "statusDriver": event.statusDriver,
+                "namaPenumpang": event.namaPenumpang,
+              });
+
+              emit(CarpoolStateCompleteEdit());
+              return;
+            } else {}
+          } catch (e) {
+            // Lanjutkan ke collectionGroup jika direct path gagal
+          }
+        }
+
+        // Fallback ke collectionGroup
         final QuerySnapshot querySnapshot = await firestore
             .collectionGroup("carpoolItems")
             .where("id", isEqualTo: event.id)
@@ -93,12 +137,14 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
           emit(CarpoolStateError("Document not found with ID: ${event.id}"));
           return;
         }
+
         final docRef = querySnapshot.docs[0].reference;
 
         await docRef.update({
           "namaPengguna": event.namaPengguna,
           "satuanKerja": event.satuanKerja,
           "tujuan": event.tujuan,
+          "keperluan": event.keperluan,
           "jamBerangkat": event.jamBerangkat,
           "jamKembali": event.jamKembali,
           "kendaraan": event.kendaraan,
@@ -106,6 +152,7 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
           "kmAwal": event.kmAwal,
           "kmAkhir": event.kmAkhir,
           "statusDriver": event.statusDriver,
+          "namaPenumpang": event.namaPenumpang,
         });
 
         emit(CarpoolStateCompleteEdit());
@@ -114,11 +161,124 @@ class CarpoolBloc extends Bloc<CarpoolEvent, CarpoolState> {
       }
     });
 
+    on<CarpoolEventEditCarpoolRequest>((event, emit) async {
+      try {
+        emit(CarpoolStateLoadingEdit());
+
+        final deletedate = event.formattedDate;
+
+        final docRef = firestore
+            .collection("carpool")
+            .doc(event.tanggalRequest)
+            .collection("carpoolItems")
+            .doc(event.id);
+
+        await docRef.set({
+          "id": event.id,
+          "namaPengguna": event.namaPengguna,
+          "satuanKerja": event.satuanKerja,
+          "tujuan": event.tujuan,
+          "keperluan": event.keperluan,
+          "jamBerangkat": event.jamBerangkat,
+          "jamKembali": event.jamKembali,
+          "kendaraan": event.kendaraan,
+          "pengemudi": event.pengemudi,
+          "kmAwal": event.kmAwal,
+          "kmAkhir": null,
+          "statusDriver": event.statusDriver,
+          "createdAt": FieldValue.serverTimestamp(),
+          "formattedDate": event.tanggalRequest,
+          "namaPenumpang": event.namaPenumpang,
+        });
+
+        if (deletedate.isNotEmpty) {
+          final oldDocRef = firestore
+              .collection("carpool")
+              .doc(deletedate)
+              .collection("carpoolRequest")
+              .doc(event.id);
+
+          final docSnapshot = await oldDocRef.get();
+          if (docSnapshot.exists) {
+            await oldDocRef.delete();
+          }
+        }
+
+        emit(CarpoolStateCompleteEdit());
+      } on FirebaseException catch (e) {
+        emit(CarpoolStateError(e.message ?? "Tidak dapat memindahkan Carpool"));
+      } catch (e) {
+        emit(CarpoolStateError("Terjadi kesalahan saat edit carpool: $e"));
+      }
+    });
+
     on<CarpoolEventDelete>((event, emit) async {
       try {
         emit(CarpoolStateLoadingDelete());
+
+        if (event.formattedDate.isNotEmpty) {
+          try {
+            final docRef = firestore
+                .collection("carpool")
+                .doc(event.formattedDate)
+                .collection("carpoolItems")
+                .doc(event.id);
+
+            final docSnapshot = await docRef.get();
+
+            if (docSnapshot.exists) {
+              await docRef.delete();
+              emit(CarpoolStateCompleteDelete());
+              return;
+            }
+          } catch (e) {
+            // Fallback ke collectionGroup jika gagal
+          }
+        }
+
         await firestore
             .collectionGroup("carpoolItems")
+            .where("id", isEqualTo: event.id)
+            .get()
+            .then((snapshot) async {
+          for (var doc in snapshot.docs) {
+            await doc.reference.delete();
+          }
+        });
+
+        emit(CarpoolStateCompleteDelete());
+      } on FirebaseException catch (e) {
+        emit(CarpoolStateError(e.message ?? "Gagal menghapus carpool"));
+      } catch (e) {
+        emit(CarpoolStateError("Terjadi kesalahan, coba lagi"));
+      }
+    });
+
+    on<CarpoolEventDeleteRequest>((event, emit) async {
+      try {
+        emit(CarpoolStateLoadingDelete());
+
+        if (event.formattedDate.isNotEmpty) {
+          try {
+            final docRef = firestore
+                .collection("carpool")
+                .doc(event.formattedDate)
+                .collection("carpoolRequest")
+                .doc(event.id);
+
+            final docSnapshot = await docRef.get();
+
+            if (docSnapshot.exists) {
+              await docRef.delete();
+              emit(CarpoolStateCompleteDelete());
+              return;
+            }
+          } catch (e) {
+            // Fallback ke collectionGroup jika gagal
+          }
+        }
+        await firestore
+            .collectionGroup("carpoolRequest")
             .where("id", isEqualTo: event.id)
             .get()
             .then((snapshot) async {

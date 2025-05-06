@@ -28,4 +28,6 @@ abstract class Routes {
   static String carpoolRequest = 'carpoolRequest';
 
   static String carpoolViewRequest = 'carpoolViewRequest';
+
+  static String carpoolViewRequestDetail = 'carpoolViewRequestDetail';
 }

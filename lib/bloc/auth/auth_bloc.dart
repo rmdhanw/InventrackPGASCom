@@ -17,7 +17,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthEventForgotPassword>(_onForgotPassword);
   }
 
-  /// Fungsi untuk Login User
   Future<void> _onLogin(AuthEventLogin event, Emitter<AuthState> emit) async {
     await _authMethods(
       emit: emit,

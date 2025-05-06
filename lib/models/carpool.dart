@@ -4,6 +4,7 @@ class Carpool {
   String? namapengguna;
   String? satuanKerja;
   String? tujuan;
+  String? keperluan;
   String? jamBerangkat;
   String? jamKembali;
   String? kendaraan;
@@ -14,11 +15,14 @@ class Carpool {
   DateTime? createdAt;
   String id;
   String formattedDate;
+  String? tanggalRequest;
+  String? namaPenumpang;
 
   Carpool({
     this.namapengguna,
     this.satuanKerja,
     this.tujuan,
+    this.keperluan,
     this.jamBerangkat,
     this.jamKembali,
     this.kendaraan,
@@ -29,12 +33,15 @@ class Carpool {
     required this.id,
     this.statusDriver,
     required this.formattedDate,
+    this.tanggalRequest,
+    this.namaPenumpang,
   });
 
   factory Carpool.fromJson(Map<String, dynamic> json) => Carpool(
         namapengguna: json["namaPengguna"] ?? "",
         satuanKerja: json["satuanKerja"] ?? "",
         tujuan: json["tujuan"] ?? "",
+        keperluan: json["keperluan"] ?? "",
         jamBerangkat: json["jamBerangkat"] ?? "",
         jamKembali: json["jamKembali"] ?? "",
         kendaraan: json["kendaraan"] ?? "",
@@ -47,12 +54,15 @@ class Carpool {
             : null,
         id: json["id"] ?? "",
         formattedDate: json["formattedDate"] ?? "",
+        tanggalRequest: json["tanggalRequest"] ?? "",
+        namaPenumpang: json["namaPenumpang"] ?? "",
       );
 
   Map<String, dynamic> toJson() => {
         "namaPengguna": namapengguna,
         "satuanKerja": satuanKerja,
         "tujuan": tujuan,
+        "keperluan": keperluan,
         "jamBerangkat": jamBerangkat,
         "jamKembali": jamKembali,
         "kendaraan": kendaraan,
@@ -63,5 +73,7 @@ class Carpool {
         "createdAt": createdAt != null ? Timestamp.fromDate(createdAt!) : null,
         "id": id,
         "formattedDate": formattedDate,
+        "tanggalRequest": tanggalRequest,
+        "namaPenumpang": namaPenumpang,
       };
 }

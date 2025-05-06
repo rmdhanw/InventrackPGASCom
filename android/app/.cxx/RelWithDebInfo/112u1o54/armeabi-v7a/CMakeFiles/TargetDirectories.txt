@@ -1,0 +1,2 @@
+D:/InventrackPGASCom/android/app/.cxx/RelWithDebInfo/112u1o54/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/InventrackPGASCom/android/app/.cxx/RelWithDebInfo/112u1o54/armeabi-v7a/CMakeFiles/rebuild_cache.dir

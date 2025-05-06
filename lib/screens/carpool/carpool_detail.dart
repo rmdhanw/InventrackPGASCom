@@ -21,7 +21,9 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController namaPenggunaController;
+  late TextEditingController namaPenumpangController;
   late TextEditingController tujuanController;
+  late TextEditingController keperluanController;
   late TextEditingController jamBerangkatController;
   late TextEditingController jamKembaliController;
   late TextEditingController kendaraanController;
@@ -37,7 +39,10 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
     super.initState();
     final carpool = widget.carpool;
     namaPenggunaController = TextEditingController(text: carpool.namapengguna);
+    namaPenumpangController =
+        TextEditingController(text: carpool.namaPenumpang);
     tujuanController = TextEditingController(text: carpool.tujuan);
+    keperluanController = TextEditingController(text: carpool.keperluan);
     jamBerangkatController = TextEditingController(text: carpool.jamBerangkat);
     jamKembaliController = TextEditingController(text: carpool.jamKembali);
     kendaraanController = TextEditingController(text: carpool.kendaraan);
@@ -93,7 +98,6 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
 
     String formattedDate = widget.carpool.formattedDate;
     if (formattedDate.isEmpty) {
-      // Use today's date if formattedDate is empty
       final now = DateTime.now();
       formattedDate =
           "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
@@ -103,8 +107,10 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
     context.read<CarpoolBloc>().add(CarpoolEventEditCarpool(
           id: widget.id,
           namaPengguna: namaPenggunaController.text,
+          namaPenumpang: namaPenumpangController.text,
           satuanKerja: _selectedSatker!,
           tujuan: tujuanController.text,
+          keperluan: keperluanController.text,
           jamBerangkat: jamBerangkatController.text,
           jamKembali: jamKembaliController.text,
           kendaraan: kendaraanController.text,
@@ -115,6 +121,26 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
           formattedDate: widget.carpool.formattedDate,
         ));
     Navigator.pop(context); // kembali ke layar sebelumnya
+  }
+
+  Future<void> _selectTime24H(
+      BuildContext context, TextEditingController controller) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final formattedTime =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      controller.text = formattedTime;
+    }
   }
 
   void _deleteData() {
@@ -152,14 +178,40 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
                   child: ListView(
                     children: [
                       _buildTextField('Nama Pengguna', namaPenggunaController),
+                      _buildTextField(
+                          'Nama Penumpang', namaPenumpangController),
                       _buildDropdown(
-                          'Satuan Kerja',
-                          ['PGNCom', 'GasNet'],
+                          'Tim Request',
+                          [
+                            'ICS',
+                            'Offtake',
+                            'PMD',
+                            'LPS',
+                            'SIRKOM',
+                            'Komersial',
+                            'Office',
+                            'OSM',
+                            'Project',
+                            'ICT',
+                            'Tamu',
+                            'Lainnya'
+                          ],
                           _selectedSatker,
                           (val) => setState(() => _selectedSatker = val)),
                       _buildTextField('Tujuan', tujuanController),
-                      _buildTextField('Jam Berangkat', jamBerangkatController),
-                      _buildTextField('Jam Kembali', jamKembaliController),
+                      _buildTextField('Keperluan', keperluanController),
+                      _buildTextField(
+                        'Jam Berangkat',
+                        jamBerangkatController,
+                        onTap: () =>
+                            _selectTime24H(context, jamBerangkatController),
+                      ),
+                      _buildTextField(
+                        'Jam Kembali',
+                        jamKembaliController,
+                        onTap: () =>
+                            _selectTime24H(context, jamKembaliController),
+                      ),
                       _buildTextField('No. Polisi', kendaraanController),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 15),
@@ -182,7 +234,7 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
                           isNumber: true),
                       _buildDropdown(
                           'Status Driver',
-                          ['On Duty', 'Arrived', 'Off Duty'],
+                          ['Bertugas', 'Stand by', 'Cuti'],
                           _selectedStatusDriver,
                           (val) => setState(() => _selectedStatusDriver = val)),
                     ],
@@ -221,14 +273,16 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
   }
 
   Widget _buildTextField(String label, TextEditingController controller,
-      {bool isNumber = false}) {
+      {bool isNumber = false, VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: TextFormField(
         controller: controller,
+        readOnly: onTap != null,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         validator: (value) =>
-            value == null || value.isEmpty ? 'Tidak boleh kosong' : null,
+            (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null,
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
