@@ -29,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthStateLogin) {
+          if (state is AuthStateAuthenticated) {
             context.goNamed(Routes.home);
           } else if (state is AuthStateError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -94,6 +94,15 @@ class LoginCard extends StatelessWidget {
         key: formKey,
         child: Column(
           children: [
+            SizedBox(height: size.height * 0.02),
+            const Text(
+              "LOGIN",
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(199, 3, 40, 80),
+              ),
+            ),
             Image.asset(
               'images/logoinventrack.png',
               width: size.width * 0.5,
@@ -171,30 +180,6 @@ class LoginCard extends StatelessWidget {
               },
             ),
             SizedBox(height: size.height * 0.02),
-            TextButton(
-              onPressed: () => context.pushNamed(Routes.forgotpassword),
-              child: const Text(
-                'Forgot Password?',
-                style: TextStyle(color: Colors.black54),
-              ),
-            ),
-            SizedBox(height: size.height * 0.01),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Don't have an account? ",
-                  style: TextStyle(color: Colors.black54),
-                ),
-                TextButton(
-                  onPressed: () => context.pushNamed(Routes.register),
-                  child: const Text(
-                    'Sign up',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),

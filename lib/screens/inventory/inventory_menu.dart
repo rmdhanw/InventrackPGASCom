@@ -4,8 +4,8 @@ import 'package:inventrack/bloc/bloc.dart';
 import 'package:inventrack/routes/router_name.dart';
 import 'package:inventrack/widgets/header_widget.dart';
 
-class CarpoolMenu extends StatelessWidget {
-  const CarpoolMenu({super.key});
+class InventoryMenu extends StatelessWidget {
+  const InventoryMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -96,24 +96,19 @@ class CarpoolMenu extends StatelessWidget {
 
   static final List<Map<String, dynamic>> _menuItems = [
     {
-      'icon': Icons.hail,
-      'title': "Request User",
-      'route': Routes.carpoolRequest,
-    },
-    {
       'icon': Icons.library_add,
-      'title': "Bypass Carpool",
+      'title': "Input Data Barang",
       'route': Routes.carpoolForm,
     },
     {
-      'icon': Icons.card_travel,
-      'title': "Approval Carpool",
+      'icon': Icons.sync_alt,
+      'title': "Tranksaksi Barang",
       'route': Routes.carpoolViewRequest,
     },
     {
-      'icon': Icons.car_rental,
-      'title': "Carpool Services",
-      'route': Routes.carpoolView,
+      'icon': Icons.list_alt,
+      'title': "Data Barang",
+      'route': Routes.carpoolViewRequest,
     },
   ];
 }

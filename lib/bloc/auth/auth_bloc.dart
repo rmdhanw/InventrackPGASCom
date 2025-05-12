@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:inventrack/utils/user_role.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -13,24 +14,43 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthEventLogin>(_onLogin);
     on<AuthEventSignUp>(_onSignUp);
     on<AuthEventLogout>(_onLogout);
-    on<AuthEventRequestResetConfirmation>(_onRequestResetConfirmation);
-    on<AuthEventForgotPassword>(_onForgotPassword);
   }
 
   Future<void> _onLogin(AuthEventLogin event, Emitter<AuthState> emit) async {
     await _authMethods(
       emit: emit,
       action: () async {
-        await _auth.signInWithEmailAndPassword(
+        final UserCredential userCredential =
+            await _auth.signInWithEmailAndPassword(
           email: event.email,
           password: event.pass,
         );
-        emit(AuthStateLogin());
+
+        final User? user = userCredential.user;
+        if (user == null) {
+          throw Exception("User tidak ditemukan.");
+        }
+
+        // 🔍 Ambil handle dan role dari Firestore
+        final QuerySnapshot snapshot = await _firestore
+            .collectionGroup("users")
+            .where("uid", isEqualTo: user.uid)
+            .get();
+
+        if (snapshot.docs.isEmpty) {
+          throw Exception("Data user tidak ditemukan di Firestore.");
+        }
+
+        final doc = snapshot.docs.first;
+        final data = doc.data() as Map<String, dynamic>;
+        final handle = data['handle'] ?? 'user';
+
+        emit(AuthStateAuthenticated(
+            uid: user.uid, email: user.email ?? '', handle: handle));
       },
     );
   }
 
-  /// Fungsi untuk Register User Baru
   Future<void> _onSignUp(AuthEventSignUp event, Emitter<AuthState> emit) async {
     await _authMethods(
       emit: emit,
@@ -56,7 +76,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           'email': event.email,
           'name': event.name,
           'createdAt': FieldValue.serverTimestamp(),
-          'handle': "user",
+          'handle': event.handle,
         });
 
         emit(AuthStateSignUp());
@@ -64,7 +84,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Fungsi untuk Logout
   Future<void> _onLogout(AuthEventLogout event, Emitter<AuthState> emit) async {
     await _authMethods(
       emit: emit,
@@ -75,45 +94,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Fungsi untuk Mengirim Email Reset Password
-  Future<void> _onForgotPassword(
-      AuthEventForgotPassword event, Emitter<AuthState> emit) async {
-    await _authMethods(
-      emit: emit,
-      action: () async {
-        await _auth.sendPasswordResetEmail(email: event.email);
-        emit(AuthStateSuccess("Password reset email sent!"));
-      },
-    );
-  }
-
-  /// Fungsi untuk Mengirim Email Konfirmasi Reset Password
-  Future<void> _onRequestResetConfirmation(
-      AuthEventRequestResetConfirmation event, Emitter<AuthState> emit) async {
-    await _authMethods(
-      emit: emit,
-      action: () async {
-        ActionCodeSettings actionCodeSettings = ActionCodeSettings(
-          url: 'https://yourapp.page.link/resetpassword',
-          handleCodeInApp: true,
-          androidPackageName: 'com.example.yourapp',
-          androidInstallApp: true,
-          androidMinimumVersion: '21',
-          iOSBundleId: 'com.example.yourapp',
-        );
-
-        await _auth.sendSignInLinkToEmail(
-          email: event.email,
-          actionCodeSettings: actionCodeSettings,
-        );
-
-        emit(AuthStateSuccess(
-            "A confirmation email has been sent. Please check your email."));
-      },
-    );
-  }
-
-  /// Fungsi General untuk Menangani Error dan Loading
   Future<void> _authMethods({
     required Emitter<AuthState> emit,
     required Future<void> Function() action,
@@ -126,13 +106,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  /// Fungsi untuk Menangani Error
   AuthState _handleError(dynamic error) {
     String errorMessage = "An unknown error occurred.";
     if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'user-not-found':
+          errorMessage = 'Akun tidak ditemukan.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Password salah.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Format email tidak valid.';
+          break;
+        default:
+          errorMessage = error.message ?? errorMessage;
+      }
+    } else if (error is FirebaseException) {
       errorMessage = error.message ?? errorMessage;
     } else if (error is Exception) {
-      errorMessage = error.toString();
+      errorMessage = error.toString().replaceAll('Exception: ', '');
     }
     return AuthStateError(errorMessage);
   }

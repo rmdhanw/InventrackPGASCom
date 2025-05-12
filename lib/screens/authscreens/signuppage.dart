@@ -15,14 +15,16 @@ class _SignUpPageState extends State<SignUpPage> {
   final password = TextEditingController();
   final name = TextEditingController();
   String? selectedRole;
+  String? selectedHandle;
 
   final List<String> roles = [
     "Manager RO",
-    "HSSE",
+    "Office",
     "Engineer",
     "Driver",
     "Security"
   ];
+  final List<String> handles = ["user", "admin", "super admin"];
 
   @override
   void dispose() {
@@ -72,14 +74,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           color: Colors.white)),
                   const SizedBox(height: 30),
                   _buildForm(),
-                  const SizedBox(height: 20),
-                  const Text("Already have an account? ",
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                  TextButton(
-                    onPressed: () => context.goNamed(Routes.login),
-                    child: const Text("Login",
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-                  ),
                 ],
               ),
             ),
@@ -107,24 +101,54 @@ class _SignUpPageState extends State<SignUpPage> {
       child: Column(
         children: [
           _buildTextField(name, "Name", Icons.person),
-          _buildDropdownRole(),
+          _buildDropdown(
+            label: "Role",
+            value: selectedRole,
+            items: roles,
+            onChanged: (value) => setState(() => selectedRole = value),
+            iconMapper: (role) {
+              switch (role) {
+                case "Manager RO":
+                  return Icons.person;
+                case "Office":
+                  return Icons.work;
+                case "Engineer":
+                  return Icons.build;
+                case "Driver":
+                  return Icons.local_shipping;
+                default:
+                  return Icons.security;
+              }
+            },
+          ),
+          _buildDropdown(
+            label: "Handle",
+            value: selectedHandle,
+            items: handles,
+            onChanged: (value) => setState(() => selectedHandle = value),
+          ),
           _buildTextField(email, "Email", Icons.email,
               keyboardType: TextInputType.emailAddress),
           _buildTextField(password, "Password", Icons.lock, obscureText: true),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {
-              if (selectedRole == null) {
+              if (selectedRole == null || selectedHandle == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text("Please select a role"),
+                    content: Text("Please select a role and handle"),
                     backgroundColor: Colors.red,
                   ),
                 );
               } else {
                 context.read<AuthBloc>().add(
                       AuthEventSignUp(
-                          email.text, password.text, name.text, selectedRole!),
+                        email.text,
+                        password.text,
+                        name.text,
+                        selectedRole!,
+                        selectedHandle!,
+                      ),
                     );
               }
             },
@@ -142,47 +166,6 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildDropdownRole() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: DropdownButtonFormField<String>(
-        value: selectedRole,
-        decoration: InputDecoration(
-          labelText: "Role",
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        items: roles.map((role) {
-          return DropdownMenuItem(
-            value: role,
-            child: Row(
-              children: [
-                Icon(
-                  role == "Manager RO"
-                      ? Icons.person
-                      : role == "HSSE"
-                          ? Icons.medical_services
-                          : role == "Engineer"
-                              ? Icons.build
-                              : role == "Driver"
-                                  ? Icons.local_shipping
-                                  : Icons.security,
-                  color: Colors.blueAccent,
-                ),
-                const SizedBox(width: 10),
-                Text(role),
-              ],
-            ),
-          );
-        }).toList(),
-        onChanged: (value) {
-          setState(() {
-            selectedRole = value;
-          });
-        },
-      ),
-    );
-  }
-
   Widget _buildTextField(
       TextEditingController controller, String label, IconData icon,
       {bool obscureText = false,
@@ -191,14 +174,47 @@ class _SignUpPageState extends State<SignUpPage> {
       padding: const EdgeInsets.only(bottom: 15),
       child: TextField(
         controller: controller,
+        obscureText: obscureText,
         keyboardType: keyboardType,
         textInputAction: TextInputAction.next,
-        obscureText: obscureText,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.blueAccent),
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required void Function(String?) onChanged,
+    IconData Function(String)? iconMapper,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        items: items.map((item) {
+          return DropdownMenuItem(
+            value: item,
+            child: Row(
+              children: [
+                if (iconMapper != null)
+                  Icon(iconMapper(item), color: Colors.blueAccent),
+                if (iconMapper != null) const SizedBox(width: 10),
+                Text(item),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
       ),
     );
   }

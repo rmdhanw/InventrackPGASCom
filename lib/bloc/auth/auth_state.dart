@@ -9,7 +9,14 @@ abstract class AuthState {}
 // 4. AuthStateError -> gagal login -> dapat error
 // 5. AuthStateSuccess -> aksi berhasil dilakukan
 
-class AuthStateLogin extends AuthState {}
+class AuthStateLogin extends AuthState {
+  final User user;
+  final UserRole role;
+  final String handle;
+
+  AuthStateLogin(
+      {required this.user, required this.role, required this.handle});
+}
 
 class AuthStateLoading extends AuthState {}
 

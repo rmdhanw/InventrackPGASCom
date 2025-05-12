@@ -16,11 +16,24 @@ class AuthEventLogin extends AuthEvent {
 }
 
 class AuthEventSignUp extends AuthEvent {
-  AuthEventSignUp(this.email, this.pass, this.name, this.role);
+  AuthEventSignUp(this.email, this.pass, this.name, this.role, this.handle);
   final String email;
   final String pass;
   final String name;
   final String role;
+  final String handle;
+}
+
+class AuthStateAuthenticated extends AuthState {
+  final String uid;
+  final String email;
+  final String handle;
+
+  AuthStateAuthenticated({
+    required this.uid,
+    required this.email,
+    required this.handle,
+  });
 }
 
 class AuthEventLogout extends AuthEvent {}

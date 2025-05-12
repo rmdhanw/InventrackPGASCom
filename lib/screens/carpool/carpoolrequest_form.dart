@@ -62,7 +62,6 @@ class RequestCarpoolState extends State<RequestCarpool>
 
     _animController.forward();
 
-    // Load user name from Firestore
     _loadUserName();
   }
 
@@ -71,18 +70,43 @@ class RequestCarpoolState extends State<RequestCarpool>
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      final doc = await FirebaseFirestore.instance
-          .collection('roles')
-          .doc('Engineer')
-          .collection('users')
-          .doc(uid)
-          .get();
+      // Daftar semua roles yang tersedia
+      final rolesList = [
+        'Engineer',
+        'Driver',
+        'Manager RO',
+        'Office',
+        'Security'
+      ];
 
-      final name = doc.data()?['name'];
-      if (name != null) {
+      // Variabel untuk menyimpan nama pengguna jika ditemukan
+      String? userName;
+
+      // Periksa di setiap koleksi role
+      for (final role in rolesList) {
+        // Gunakan role ID yang sesuai dengan struktur Firestore
+        final roleId = role.replaceAll(' ', ''); // Hapus spasi jika ada
+
+        final doc = await FirebaseFirestore.instance
+            .collection('roles')
+            .doc(role)
+            .collection('users')
+            .doc(uid)
+            .get();
+
+        if (doc.exists && doc.data()?['name'] != null) {
+          userName = doc.data()?['name'];
+          debugPrint('User ditemukan di role: $role');
+          break; // Keluar dari loop jika pengguna ditemukan
+        }
+      }
+
+      if (userName != null) {
         setState(() {
-          namaPenggunaController.text = name;
+          namaPenggunaController.text = userName!;
         });
+      } else {
+        debugPrint('Pengguna tidak ditemukan di semua role');
       }
     } catch (e) {
       debugPrint('Gagal memuat nama pengguna: $e');

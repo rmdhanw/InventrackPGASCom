@@ -18,53 +18,70 @@ class HomePage extends StatelessWidget {
         if (state is AuthStateLogout) context.goNamed(Routes.login);
       },
       child: Scaffold(
-        body: Column(
-          children: [
-            const HeaderWidget(),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final crossAxisCount = isTabletOrLarger ? 2 : 1;
-                        return Column(
-                          children: [
-                            const SizedBox(height: 20),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 20,
-                                mainAxisSpacing: 15,
-                                childAspectRatio: 3.5,
-                              ),
-                              itemCount: _menuItems.length,
-                              itemBuilder: (context, index) {
-                                final item = _menuItems[index];
-                                return _AnimatedMenuItem(
-                                  icon: item['icon'],
-                                  title: item['title'],
-                                  routeName: item['route'],
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 60),
-                            const CompanyLogo(),
-                          ],
-                        );
-                      },
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is! AuthStateAuthenticated) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final handle = state.handle;
+
+            final menuItems = _menuItems.where((item) {
+              if (handle == 'user') {
+                return item['title'] == "CARPOOL" ||
+                    item['title'] == "INVENTORY";
+              }
+              return true;
+            }).toList();
+            return Column(
+              children: [
+                const HeaderWidget(),
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final crossAxisCount = isTabletOrLarger ? 2 : 1;
+                            return Column(
+                              children: [
+                                const SizedBox(height: 20),
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
+                                    crossAxisSpacing: 20,
+                                    mainAxisSpacing: 15,
+                                    childAspectRatio: 3.5,
+                                  ),
+                                  itemCount: menuItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = menuItems[index];
+                                    return _AnimatedMenuItem(
+                                      icon: item['icon'],
+                                      title: item['title'],
+                                      routeName: item['route'],
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 60),
+                                const CompanyLogo(),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -80,6 +97,11 @@ class HomePage extends StatelessWidget {
       'icon': Icons.inventory,
       'title': "INVENTORY",
       'route': Routes.inventoryMenu,
+    },
+    {
+      'icon': Icons.person_add,
+      'title': "REGISTER USER",
+      'route': Routes.register,
     },
   ];
 }

@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:inventrack/bloc/auth/auth_bloc.dart'; // Import AuthBloc
 import 'package:inventrack/bloc/carpool/carpool_bloc.dart';
 import 'package:inventrack/models/carpool.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:inventrack/routes/router_name.dart';
 
 class CarpoolViewRequest extends StatefulWidget {
@@ -16,7 +18,6 @@ class CarpoolViewRequest extends StatefulWidget {
 class _CarpoolViewRequestState extends State<CarpoolViewRequest>
     with SingleTickerProviderStateMixin {
   final CarpoolBloc _carpoolBloc = CarpoolBloc();
-
   String _selectedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
   late AnimationController _animController;
 
@@ -61,11 +62,28 @@ class _CarpoolViewRequestState extends State<CarpoolViewRequest>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.goNamed(
-            Routes.carpoolViewRequestDetail,
-            pathParameters: {"id": carpool.id},
-            extra: carpool,
-          ),
+          onTap: () {
+            final authState = context.read<AuthBloc>().state;
+            bool hasAccess = false;
+
+            if (authState is AuthStateAuthenticated) {
+              final role = authState.handle.toLowerCase();
+              hasAccess = role != 'user';
+            }
+
+            if (hasAccess) {
+              context.goNamed(
+                Routes.carpoolViewRequestDetail,
+                pathParameters: {"id": carpool.id},
+                extra: carpool,
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Anda tidak memiliki akses ke detail.')),
+              );
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(

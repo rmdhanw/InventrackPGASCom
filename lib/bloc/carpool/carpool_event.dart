@@ -137,3 +137,10 @@ class CarpoolEventDeleteRequest extends CarpoolEvent {
 
   CarpoolEventDeleteRequest(this.id, [this.formattedDate = '']);
 }
+
+class CarpoolEventLoadMonthData extends CarpoolEvent {
+  final int month;
+  final int? year;
+
+  CarpoolEventLoadMonthData(this.month, [this.year]);
+}

@@ -10,11 +10,10 @@ import 'package:inventrack/screens/carpool/carpoolrequest_detail.dart';
 import 'package:inventrack/screens/carpool/carpoolrequest_form.dart';
 import 'package:inventrack/screens/carpool/carpoolrequest_view.dart';
 import 'package:inventrack/screens/home.dart';
-import 'package:inventrack/screens/information_page.dart';
-import 'package:inventrack/screens/inventory_menu.dart';
 import 'package:inventrack/screens/authscreens/loginpage.dart';
-import 'package:inventrack/screens/scanqr.dart';
 import 'package:inventrack/screens/authscreens/signuppage.dart';
+import 'package:inventrack/screens/inventory/inventory_form.dart';
+import 'package:inventrack/screens/inventory/inventory_menu.dart';
 import 'router_name.dart';
 
 CustomTransitionPage buildTransitionPage(Widget child, GoRouterState state) {
@@ -59,12 +58,6 @@ final router = GoRouter(
       name: Routes.login,
       pageBuilder: (context, state) =>
           buildTransitionPage(const LoginPage(), state),
-    ),
-    GoRoute(
-      path: '/register',
-      name: Routes.register,
-      pageBuilder: (context, state) =>
-          buildTransitionPage(const SignUpPage(), state),
     ),
     GoRoute(
       path: '/home',
@@ -131,22 +124,37 @@ final router = GoRouter(
           ],
         ),
         GoRoute(
-          path: 'inventory',
-          name: Routes.inventoryMenu,
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const InventoryMenu(), state),
-        ),
+            path: 'inventory',
+            name: Routes.inventoryMenu,
+            pageBuilder: (context, state) =>
+                buildTransitionPage(const InventoryMenu(), state),
+            routes: [
+              GoRoute(
+                path: 'inventoryForm',
+                name: Routes.inventoryForm,
+                pageBuilder: (context, state) =>
+                    buildTransitionPage(const InventoryForm(), state),
+              ),
+              // GoRoute(
+              //     path: 'inventoryView',
+              //     name: Routes.inventoryView,
+              //     pageBuilder: (context, state) =>
+              //         buildTransitionPage(const InventoryView(), state)),
+              // GoRoute(
+              //     path: 'inventoryViewDetail/:id',
+              //     name: Routes.inventoryViewDetail,
+              //     pageBuilder: (context, state) => buildTransitionPage(
+              //         InventoryViewDetail(
+              //           state.pathParameters['sn'].toString(),
+              //           state.extra as Inventory,
+              //         ),
+              //         state)),
+            ]),
         GoRoute(
-          path: 'scanqr',
-          name: Routes.scanQR,
+          path: 'register',
+          name: Routes.register,
           pageBuilder: (context, state) =>
-              buildTransitionPage(const Scanqr(), state),
-        ),
-        GoRoute(
-          path: 'information',
-          name: Routes.information,
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const InformationPage(), state),
+              buildTransitionPage(const SignUpPage(), state),
         ),
       ],
     ),

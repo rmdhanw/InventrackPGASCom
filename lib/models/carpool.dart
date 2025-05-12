@@ -17,6 +17,7 @@ class Carpool {
   String formattedDate;
   String? tanggalRequest;
   String? namaPenumpang;
+  String? handle;
 
   Carpool({
     this.namapengguna,
@@ -35,6 +36,7 @@ class Carpool {
     required this.formattedDate,
     this.tanggalRequest,
     this.namaPenumpang,
+    this.handle,
   });
 
   factory Carpool.fromJson(Map<String, dynamic> json) => Carpool(
@@ -56,6 +58,7 @@ class Carpool {
         formattedDate: json["formattedDate"] ?? "",
         tanggalRequest: json["tanggalRequest"] ?? "",
         namaPenumpang: json["namaPenumpang"] ?? "",
+        handle: json["handle"] ?? "",
       );
 
   Map<String, dynamic> toJson() => {
@@ -75,5 +78,6 @@ class Carpool {
         "formattedDate": formattedDate,
         "tanggalRequest": tanggalRequest,
         "namaPenumpang": namaPenumpang,
+        "handle": handle,
       };
 }

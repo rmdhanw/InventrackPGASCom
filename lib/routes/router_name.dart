@@ -30,4 +30,12 @@ abstract class Routes {
   static String carpoolViewRequest = 'carpoolViewRequest';
 
   static String carpoolViewRequestDetail = 'carpoolViewRequestDetail';
+
+  static String inventoryForm = 'inventoryForm';
+
+  static String inventoryView = 'inventoryView';
+
+  static String inventoryViewDetail = 'inventoryViewDetail';
+
+  static String inventoryTransactionHistory = 'inventoryTransactionHistory';
 }
