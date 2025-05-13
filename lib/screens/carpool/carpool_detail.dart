@@ -120,7 +120,7 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
           statusDriver: _selectedStatusDriver!,
           formattedDate: widget.carpool.formattedDate,
         ));
-    Navigator.pop(context); // kembali ke layar sebelumnya
+    Navigator.pop(context);
   }
 
   Future<void> _selectTime24H(
@@ -155,7 +155,7 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
         if (state is CarpoolStateCompleteEdit) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Data berhasil diperbarui')));
-          Navigator.pop(context); // kembali ke layar sebelumnya
+          Navigator.pop(context);
         } else if (state is CarpoolStateError) {
           ScaffoldMessenger.of(context)
               .showSnackBar(SnackBar(content: Text(state.message)));
