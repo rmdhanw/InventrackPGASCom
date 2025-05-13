@@ -46,7 +46,9 @@ class CarpoolMenu extends StatelessWidget {
           ),
           body: Column(
             children: [
-              // const HeaderWidget(),
+              const HeaderWidget(
+                showLogout: false,
+              ),
               Expanded(
                 child: Container(
                   color: Colors.white,

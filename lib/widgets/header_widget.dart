@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'custombar_widget.dart';
 
 class HeaderWidget extends StatelessWidget {
-  const HeaderWidget({super.key});
+  final bool showLogout;
+  const HeaderWidget({super.key, required this.showLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +19,7 @@ class HeaderWidget extends StatelessWidget {
             top: 100,
             left: 20,
             right: 20,
-            child: CustomBarWidget(), // Memanggil CustomBarWidget
+            child: CustomBarWidget(),
           ),
           Positioned(
             bottom: -50,

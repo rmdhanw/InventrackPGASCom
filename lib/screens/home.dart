@@ -35,7 +35,7 @@ class HomePage extends StatelessWidget {
             }).toList();
             return Column(
               children: [
-                const HeaderWidget(),
+                const HeaderWidget(showLogout: true),
                 Expanded(
                   child: Container(
                     color: Colors.white,

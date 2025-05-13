@@ -17,23 +17,17 @@ class InventoryMenu extends StatelessWidget {
           context.goNamed(Routes.login);
         }
 
-        // Cek apakah pengguna sudah terautentikasi
         if (state is! AuthStateAuthenticated) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        // Ambil handle pengguna (misalnya 'user', 'admin', 'superadmin')
         final handle = state.handle;
 
-        // Filter menu berdasarkan handle
         final menuItems = _menuItems.where((item) {
           if (handle == 'user') {
-            // Untuk 'user', hanya tampilkan menu tertentu
             return item['title'] == "Request User" ||
                 item['title'] == "Approval Carpool" ||
                 item['title'] == "Carpool Services";
           }
-          // Untuk admin atau superadmin, tampilkan semua menu
           return true;
         }).toList();
 
@@ -51,7 +45,9 @@ class InventoryMenu extends StatelessWidget {
           ),
           body: Column(
             children: [
-              // const HeaderWidget(),
+              const HeaderWidget(
+                showLogout: false,
+              ),
               Expanded(
                 child: Container(
                   color: Colors.white,
