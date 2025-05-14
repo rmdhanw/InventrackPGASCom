@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inventrack/bloc/inventory/inventory_bloc.dart';
+import 'package:inventrack/models/inventory.dart';
 
 class InventoryTransactionForm extends StatefulWidget {
-  const InventoryTransactionForm({super.key});
+  final String? nomorSerial;
+  final Inventory? inventoryItem;
+
+  const InventoryTransactionForm({
+    super.key,
+    this.nomorSerial,
+    this.inventoryItem,
+  });
 
   @override
   State<InventoryTransactionForm> createState() =>
@@ -24,10 +32,35 @@ class _InventoryTransactionFormState extends State<InventoryTransactionForm> {
   String? _selectedKondisi;
 
   bool _isSearching = false;
+  bool _dataPreFilled = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Check if we have prefilled data from navigation
+    if (widget.nomorSerial != null && widget.nomorSerial!.isNotEmpty) {
+      // Set the nomor serial and trigger search
+      nomorSerialController.text = widget.nomorSerial!;
+
+      // If we also have the full inventory item data
+      if (widget.inventoryItem != null) {
+        _prefillData(widget.inventoryItem!);
+      } else {
+        // Otherwise search for the item data
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _searchItem();
+        });
+      }
+    }
+  }
+
+  void _prefillData(Inventory item) {
+    setState(() {
+      _selectedKategori = item.kategori;
+      namaBarangController.text = item.namaBarang ?? '';
+      _dataPreFilled = true;
+    });
   }
 
   Future<bool> _checkNomorSerialExists(String nomorSerial) async {
@@ -200,10 +233,11 @@ class _InventoryTransactionFormState extends State<InventoryTransactionForm> {
           Expanded(
             child: TextFormField(
               controller: nomorSerialController,
+              enabled: !_dataPreFilled, // Disable if data is prefilled
               decoration: InputDecoration(
                 labelText: 'Nomor Serial',
                 filled: true,
-                fillColor: Colors.blue[100],
+                fillColor: _dataPreFilled ? Colors.grey[300] : Colors.blue[100],
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -216,10 +250,10 @@ class _InventoryTransactionFormState extends State<InventoryTransactionForm> {
           // Tombol cari
           IconButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: _dataPreFilled ? Colors.grey : Colors.blue,
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
-            onPressed: _isSearching ? null : _searchItem,
+            onPressed: _dataPreFilled || _isSearching ? null : _searchItem,
             icon: _isSearching
                 ? const CircularProgressIndicator(
                     color: Colors.white,

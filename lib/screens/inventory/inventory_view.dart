@@ -309,12 +309,11 @@ class _InventoryViewState extends State<InventoryView> {
                       title: const Text("Edit"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to inventory detail page for editing
-                        // context.goNamed(
-                        //   Routes.inventoryDetail,
-                        //   pathParameters: {"id": item.nomorSerial ?? ""},
-                        //   extra: item,
-                        // );
+                        context.goNamed(
+                          Routes.inventoryViewDetail,
+                          pathParameters: {"id": item.nomorSerial ?? ""},
+                          extra: item,
+                        );
                       },
                     ),
                     ListTile(
@@ -334,7 +333,7 @@ class _InventoryViewState extends State<InventoryView> {
                         // Navigate to transaction form page
                         context.goNamed(
                           Routes.inventoryTransactionForm,
-                          pathParameters: {"id": item.nomorSerial ?? ""},
+                          queryParameters: {"id": item.nomorSerial ?? ""},
                           extra: item,
                         );
                       },

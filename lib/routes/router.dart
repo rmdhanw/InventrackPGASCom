@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventrack/models/carpool.dart';
+import 'package:inventrack/models/inventory.dart';
 import 'package:inventrack/screens/carpool/carpool_detail.dart';
 import 'package:inventrack/screens/carpool/carpool_form.dart';
 import 'package:inventrack/screens/carpool/carpool_menu.dart';
@@ -12,6 +13,7 @@ import 'package:inventrack/screens/carpool/carpoolrequest_view.dart';
 import 'package:inventrack/screens/home.dart';
 import 'package:inventrack/screens/authscreens/loginpage.dart';
 import 'package:inventrack/screens/authscreens/signuppage.dart';
+import 'package:inventrack/screens/inventory/inventory_detail.dart';
 import 'package:inventrack/screens/inventory/inventory_form.dart';
 import 'package:inventrack/screens/inventory/inventory_formtransaction.dart';
 import 'package:inventrack/screens/inventory/inventory_menu.dart';
@@ -141,22 +143,30 @@ final router = GoRouter(
                 path: 'inventoryTransactionForm',
                 name: Routes.inventoryTransactionForm,
                 pageBuilder: (context, state) => buildTransitionPage(
-                    const InventoryTransactionForm(), state),
+                    InventoryTransactionForm(
+                      nomorSerial: state.uri.queryParameters['id'],
+                      inventoryItem: state.extra as Inventory?,
+                    ),
+                    state),
               ),
               GoRoute(
                   path: 'inventoryView',
                   name: Routes.inventoryView,
                   pageBuilder: (context, state) =>
-                      buildTransitionPage(const InventoryView(), state)),
-              // GoRoute(
-              //     path: 'inventoryViewDetail/:id',
-              //     name: Routes.inventoryViewDetail,
-              //     pageBuilder: (context, state) => buildTransitionPage(
-              //         InventoryViewDetail(
-              //           state.pathParameters['sn'].toString(),
-              //           state.extra as Inventory,
-              //         ),
-              //         state)),
+                      buildTransitionPage(const InventoryView(), state),
+                  routes: [
+                    GoRoute(
+                      path: '/inventoryViewDetail/:id',
+                      name: Routes.inventoryViewDetail,
+                      pageBuilder: (context, state) => buildTransitionPage(
+                        InventoryDetail(
+                          state.pathParameters['id'].toString(),
+                          state.extra as Inventory,
+                        ),
+                        state,
+                      ),
+                    ),
+                  ]),
             ]),
         GoRoute(
           path: 'register',

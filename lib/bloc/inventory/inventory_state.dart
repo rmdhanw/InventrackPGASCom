@@ -59,3 +59,12 @@ class ItemLoaded extends InventoryState {
   @override
   List<Object> get props => [namaBarang, kategori];
 }
+
+class InventoryStateCompleteEdit extends InventoryState {
+  final String message;
+
+  const InventoryStateCompleteEdit(this.message);
+
+  @override
+  List<Object> get props => [message];
+}

@@ -1,13 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-// Update the Inventory model to match your Firestore structure
 class Inventory {
   String? id;
   String? kategori;
   String? namaBarang;
   String? nomorSerial;
   String? tanggal;
-  Timestamp? timestamp;
+  DateTime? timestamp;
 
   Inventory({
     this.id,
@@ -24,7 +21,19 @@ class Inventory {
       namaBarang: json['namaBarang'],
       nomorSerial: json['nomorSerial'],
       tanggal: json['tanggal'],
-      timestamp: json['timestamp'],
+      timestamp: json['timestamp'] != null
+          ? (json['timestamp'] as dynamic).toDate()
+          : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'kategori': kategori,
+      'namaBarang': namaBarang,
+      'nomorSerial': nomorSerial,
+      'tanggal': tanggal,
+      // We don't typically include timestamp in toJson as Firestore will handle it
+    };
   }
 }

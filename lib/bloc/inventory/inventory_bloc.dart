@@ -17,6 +17,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<LoadItemBySerial>(_onLoadItemBySerial);
     on<AddTransaction>(_onAddTransaction);
     on<DeleteInventoryItem>(_onDeleteInventoryItem);
+    on<InventoryEventEditInventory>(_onEditInventory);
   }
 
   // Load all available categories
@@ -74,6 +75,29 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       emit(InventorySuccess('Item berhasil ditambahkan'));
     } catch (e) {
       emit(InventoryError('Gagal menambahkan barang: $e'));
+    }
+  }
+
+  Future<void> _onEditInventory(
+      InventoryEventEditInventory event, Emitter<InventoryState> emit) async {
+    emit(InventoryLoading());
+    try {
+      await _firestore
+          .collection('inventory')
+          .doc('data')
+          .collection('items')
+          .doc(event.nomorSerial)
+          .update({
+        'kategori': event.kategori,
+        'namaBarang': event.namaBarang,
+        'nomorSerial': event.nomorSerial,
+        'tanggal': event.tanggal,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      emit(InventoryStateCompleteEdit('Data berhasil diperbarui'));
+    } catch (e) {
+      emit(InventoryError('Gagal mengupdate data: $e'));
     }
   }
 
