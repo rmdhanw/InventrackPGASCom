@@ -6,7 +6,7 @@ class CustomBarWidget extends StatelessWidget {
 
   const CustomBarWidget({
     super.key,
-    this.showLogout = true, // default true agar tidak breaking existing use
+    this.showLogout = true,
   });
 
   @override
@@ -15,30 +15,43 @@ class CustomBarWidget extends StatelessWidget {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white
-            .withValues(alpha: 0.9), // perbaikan: withOpacity, bukan withValues
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withValues(alpha: 0.1), // perbaikan: withOpacity
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 5,
             offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Image.asset('images/logoinventrack1.png', width: 60),
-          const Text(
-            "INVENTRACK",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Image.asset(
+              'images/logoinventrack1.png',
+              width: 60,
+            ),
+          ),
+          const Center(
+            child: Text(
+              "INVENTRACK",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
           ),
           if (showLogout)
-            IconButton(
-              icon: const Icon(Icons.logout, color: Color(0xFF0D47A1)),
-              onPressed: () => context.read<AuthBloc>().add(AuthEventLogout()),
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Color(0xFF0D47A1)),
+                onPressed: () =>
+                    context.read<AuthBloc>().add(AuthEventLogout()),
+              ),
             ),
         ],
       ),

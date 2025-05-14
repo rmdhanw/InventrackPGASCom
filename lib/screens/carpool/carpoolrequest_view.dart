@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:inventrack/bloc/auth/auth_bloc.dart'; // Import AuthBloc
+import 'package:inventrack/bloc/auth/auth_bloc.dart';
 import 'package:inventrack/bloc/carpool/carpool_bloc.dart';
 import 'package:inventrack/models/carpool.dart';
 import 'package:intl/intl.dart';

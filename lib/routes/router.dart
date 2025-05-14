@@ -13,7 +13,9 @@ import 'package:inventrack/screens/home.dart';
 import 'package:inventrack/screens/authscreens/loginpage.dart';
 import 'package:inventrack/screens/authscreens/signuppage.dart';
 import 'package:inventrack/screens/inventory/inventory_form.dart';
+import 'package:inventrack/screens/inventory/inventory_formtransaction.dart';
 import 'package:inventrack/screens/inventory/inventory_menu.dart';
+import 'package:inventrack/screens/inventory/inventory_view.dart';
 import 'router_name.dart';
 
 CustomTransitionPage buildTransitionPage(Widget child, GoRouterState state) {
@@ -135,11 +137,17 @@ final router = GoRouter(
                 pageBuilder: (context, state) =>
                     buildTransitionPage(const InventoryForm(), state),
               ),
-              // GoRoute(
-              //     path: 'inventoryView',
-              //     name: Routes.inventoryView,
-              //     pageBuilder: (context, state) =>
-              //         buildTransitionPage(const InventoryView(), state)),
+              GoRoute(
+                path: 'inventoryTransactionForm',
+                name: Routes.inventoryTransactionForm,
+                pageBuilder: (context, state) => buildTransitionPage(
+                    const InventoryTransactionForm(), state),
+              ),
+              GoRoute(
+                  path: 'inventoryView',
+                  name: Routes.inventoryView,
+                  pageBuilder: (context, state) =>
+                      buildTransitionPage(const InventoryView(), state)),
               // GoRoute(
               //     path: 'inventoryViewDetail/:id',
               //     name: Routes.inventoryViewDetail,

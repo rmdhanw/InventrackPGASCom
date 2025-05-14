@@ -19,7 +19,9 @@ class HeaderWidget extends StatelessWidget {
             top: 100,
             left: 20,
             right: 20,
-            child: CustomBarWidget(),
+            child: CustomBarWidget(
+              showLogout: showLogout,
+            ),
           ),
           Positioned(
             bottom: -50,

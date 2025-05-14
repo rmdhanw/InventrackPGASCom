@@ -5,14 +5,15 @@ import 'package:inventrack/bloc/bloc.dart';
 import 'package:inventrack/models/inventory.dart';
 import 'package:inventrack/routes/router_name.dart';
 
-class InventoryView extends StatefulWidget {
-  const InventoryView({super.key});
+class InventoryTransactionView extends StatefulWidget {
+  const InventoryTransactionView({super.key});
 
   @override
-  State<InventoryView> createState() => _InventoryViewState();
+  State<InventoryTransactionView> createState() =>
+      _InventoryTransactionViewState();
 }
 
-class _InventoryViewState extends State<InventoryView> {
+class _InventoryTransactionViewState extends State<InventoryTransactionView> {
   bool isLoading = true;
   List<Inventory> inventoryItems = [];
   String? selectedCategory;
@@ -43,7 +44,7 @@ class _InventoryViewState extends State<InventoryView> {
       QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
           .instance
           .collection("inventory")
-          .doc("data")
+          .doc("transaction")
           .collection("items")
           .get();
 
@@ -98,7 +99,7 @@ class _InventoryViewState extends State<InventoryView> {
     }).toList();
   }
 
-  Future<void> _deleteItem(String itemId) async {
+  Future<void> _confirmDeleteItem(String itemId) async {
     final BuildContext currentContext = context;
     bool confirmDelete = await showDialog(
           context: context,
@@ -108,11 +109,14 @@ class _InventoryViewState extends State<InventoryView> {
                 const Text("Apakah Anda yakin ingin menghapus barang ini?"),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(context),
                 child: const Text("Batal"),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _confirmDeleteItem(itemId);
+                },
                 child: const Text("Hapus", style: TextStyle(color: Colors.red)),
               ),
             ],
@@ -124,21 +128,11 @@ class _InventoryViewState extends State<InventoryView> {
 
     if (confirmDelete) {
       try {
-        // Try using the DeleteInventoryItem event from the bloc
-        try {
-          final bloc = BlocProvider.of<InventoryBloc>(context);
-          bloc.add(DeleteInventoryItem(itemId));
-        } catch (blocError) {
-          // Fallback to direct Firestore deletion if bloc approach fails
-          await FirebaseFirestore.instance
-              .collection("inventory")
-              .doc("transaction")
-              .collection("items")
-              .doc(itemId)
-              .delete();
-        }
+        await FirebaseFirestore.instance
+            .collection("inventory")
+            .doc(itemId)
+            .delete();
 
-        // Show success message
         ScaffoldMessenger.of(currentContext).showSnackBar(
           const SnackBar(content: Text('Barang berhasil dihapus')),
         );
@@ -158,7 +152,7 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "INVENTORY DATA",
+          "INVENTORY MANAGEMENT",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.blue,
@@ -173,7 +167,7 @@ class _InventoryViewState extends State<InventoryView> {
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () {
               // Navigate to add item page
-              context.goNamed(Routes.inventoryForm);
+              // context.goNamed(Routes.addInventory);
             },
           )
         ],
@@ -292,64 +286,62 @@ class _InventoryViewState extends State<InventoryView> {
 
   Widget _buildActionButtons(Inventory item) {
     return IconButton(
-      icon: const Icon(Icons.edit, color: Colors.blue),
+      icon: Icon(Icons.edit, color: Colors.blue),
       onPressed: () {
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text("Pilih Tindakan"),
+              title: Text("Pilih Tindakan"),
               content: SizedBox(
                 width: double.minPositive,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.edit, color: Colors.blue),
-                      title: const Text("Edit"),
+                      leading: Icon(Icons.edit, color: Colors.blue),
+                      title: Text("Edit"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to inventory detail page for editing
+                        // Navigate to edit page
                         // context.goNamed(
-                        //   Routes.inventoryDetail,
-                        //   pathParameters: {"id": item.nomorSerial ?? ""},
+                        //   Routes.editInventory,
+                        //   pathParameters: {"id": item.id ?? ""},
                         //   extra: item,
                         // );
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.delete, color: Colors.red),
-                      title: const Text("Hapus"),
+                      leading: Icon(Icons.delete, color: Colors.red),
+                      title: Text("Hapus"),
                       onTap: () {
                         Navigator.pop(context);
-                        _deleteItem(item.nomorSerial ?? "");
+                        // _deleteItem();
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.transfer_within_a_station,
+                      leading: Icon(Icons.transfer_within_a_station,
                           color: Colors.green),
-                      title: const Text("Transaksi"),
+                      title: Text("Transaksi"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to transaction form page
-                        context.goNamed(
-                          Routes.inventoryTransactionForm,
-                          pathParameters: {"id": item.nomorSerial ?? ""},
-                          extra: item,
-                        );
+                        // Navigate to transaction page
+                        // context.goNamed(
+                        //   Routes.inventoryTransaction,
+                        //   pathParameters: {"id": item.id ?? ""},
+                        // );
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.history, color: Colors.purple),
-                      title: const Text("History Transaksi"),
+                      leading: Icon(Icons.history, color: Colors.purple),
+                      title: Text("History Transaksi"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to transaction history page
-                        context.goNamed(
-                          Routes.inventoryTransactionHistory,
-                          pathParameters: {"id": item.nomorSerial ?? ""},
-                          extra: item,
-                        );
+                        // Navigate to history page
+                        // context.goNamed(
+                        //   Routes.transactionHistory,
+                        //   pathParameters: {"id": item.id ?? ""},
+                        // );
                       },
                     ),
                   ],

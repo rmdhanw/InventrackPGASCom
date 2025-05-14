@@ -70,7 +70,6 @@ class RequestCarpoolState extends State<RequestCarpool>
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Daftar semua roles yang tersedia
       final rolesList = [
         'Engineer',
         'Driver',
@@ -79,13 +78,10 @@ class RequestCarpoolState extends State<RequestCarpool>
         'Security'
       ];
 
-      // Variabel untuk menyimpan nama pengguna jika ditemukan
       String? userName;
 
-      // Periksa di setiap koleksi role
       for (final role in rolesList) {
-        // Gunakan role ID yang sesuai dengan struktur Firestore
-        final roleId = role.replaceAll(' ', ''); // Hapus spasi jika ada
+        // final roleId = role.replaceAll(' ', '');
 
         final doc = await FirebaseFirestore.instance
             .collection('roles')
@@ -97,7 +93,7 @@ class RequestCarpoolState extends State<RequestCarpool>
         if (doc.exists && doc.data()?['name'] != null) {
           userName = doc.data()?['name'];
           debugPrint('User ditemukan di role: $role');
-          break; // Keluar dari loop jika pengguna ditemukan
+          break;
         }
       }
 

@@ -33,17 +33,6 @@ class CarpoolMenu extends StatelessWidget {
         }).toList();
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('CARPOOL MENU',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            centerTitle: true,
-            backgroundColor: Colors.blue,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
           body: Column(
             children: [
               const HeaderWidget(

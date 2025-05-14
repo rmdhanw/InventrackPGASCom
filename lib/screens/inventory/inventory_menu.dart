@@ -32,17 +32,6 @@ class InventoryMenu extends StatelessWidget {
         }).toList();
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('CARPOOL MENU',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            centerTitle: true,
-            backgroundColor: Colors.blue,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
           body: Column(
             children: [
               const HeaderWidget(
@@ -94,17 +83,22 @@ class InventoryMenu extends StatelessWidget {
     {
       'icon': Icons.library_add,
       'title': "Input Data Barang",
-      'route': Routes.carpoolForm,
+      'route': Routes.inventoryForm,
     },
     {
-      'icon': Icons.sync_alt,
-      'title': "Tranksaksi Barang",
-      'route': Routes.carpoolViewRequest,
+      'icon': Icons.input,
+      'title': "Input Tranksaksi Barang",
+      'route': Routes.inventoryTransactionForm,
+    },
+    {
+      'icon': Icons.history,
+      'title': "Riwayat Tranksaksi Barang",
+      'route': Routes.inventoryTransactionHistory,
     },
     {
       'icon': Icons.list_alt,
       'title': "Data Barang",
-      'route': Routes.carpoolViewRequest,
+      'route': Routes.inventoryView,
     },
   ];
 }

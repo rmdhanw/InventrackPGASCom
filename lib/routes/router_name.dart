@@ -33,6 +33,8 @@ abstract class Routes {
 
   static String inventoryForm = 'inventoryForm';
 
+  static String inventoryTransactionForm = 'inventoryTransactionForm';
+
   static String inventoryView = 'inventoryView';
 
   static String inventoryViewDetail = 'inventoryViewDetail';

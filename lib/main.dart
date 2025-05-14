@@ -35,6 +35,9 @@ class Inventrack extends StatelessWidget {
         BlocProvider<CarpoolBloc>(
           create: (context) => CarpoolBloc(),
         ),
+        BlocProvider<InventoryBloc>(
+          create: (context) => InventoryBloc(),
+        ),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
