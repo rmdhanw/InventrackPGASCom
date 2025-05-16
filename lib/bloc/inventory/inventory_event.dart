@@ -65,22 +65,24 @@ class DeleteInventoryItem extends InventoryEvent {
 }
 
 class InventoryEventEditInventory extends InventoryEvent {
-  final String id;
+  final String? id;
   final String namaBarang;
   final String nomorSerial;
+  final String? nomorSerialOld;
   final String kategori;
   final String tanggal;
 
   const InventoryEventEditInventory({
-    required this.id,
+    this.id,
     required this.namaBarang,
     required this.nomorSerial,
     required this.kategori,
     required this.tanggal,
+    this.nomorSerialOld,
   });
 
   @override
-  List<Object> get props => [id, namaBarang, nomorSerial, kategori, tanggal];
+  List<Object> get props => [namaBarang, nomorSerial, kategori, tanggal];
 }
 
 class InventoryEventEditTransaction extends InventoryEvent {
@@ -117,7 +119,6 @@ class InventoryEventEditTransaction extends InventoryEvent {
       ];
 }
 
-// Delete transaction event
 class InventoryEventDeleteTransaction extends InventoryEvent {
   final String id;
 

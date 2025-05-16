@@ -14,17 +14,20 @@ class InventoryView extends StatefulWidget {
 
 class _InventoryViewState extends State<InventoryView> {
   bool isLoading = true;
-  List<Inventory> inventoryItems = [];
-  String? selectedCategory;
   List<String> categories = ["Semua"];
+  String? selectedCategory;
 
   TextEditingController searchController = TextEditingController();
   String searchQuery = "";
 
+  // Stream untuk data inventory
+  Stream<List<Inventory>>? _inventoryStream;
+
   @override
   void initState() {
     super.initState();
-    _loadInventoryData();
+    _loadCategories();
+    _setupInventoryStream();
   }
 
   @override
@@ -33,13 +36,9 @@ class _InventoryViewState extends State<InventoryView> {
     super.dispose();
   }
 
-  Future<void> _loadInventoryData() async {
-    setState(() {
-      isLoading = true;
-    });
-
+  // Fungsi untuk memuat kategori-kategori unik
+  Future<void> _loadCategories() async {
     try {
-      // Get reference to the inventory collection
       QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
           .instance
           .collection("inventory")
@@ -47,43 +46,54 @@ class _InventoryViewState extends State<InventoryView> {
           .collection("items")
           .get();
 
-      // Convert snapshots to inventory items
-      List<Inventory> items = [];
-      for (var doc in snapshot.docs) {
-        Inventory item = Inventory.fromJson(doc.data());
-        item.id = doc.id; // Use document ID as the item ID
-        items.add(item);
-      }
-
-      // Get unique categories
+      // Ekstrak kategori unik
       Set<String> uniqueCategories = {"Semua"};
-      for (var item in items) {
-        if (item.kategori != null && item.kategori!.isNotEmpty) {
-          uniqueCategories.add(item.kategori!);
+      for (var doc in snapshot.docs) {
+        if (doc.data()['kategori'] != null &&
+            doc.data()['kategori'].isNotEmpty) {
+          uniqueCategories.add(doc.data()['kategori']);
         }
       }
 
       setState(() {
-        inventoryItems = items;
         categories = uniqueCategories.toList();
         isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading inventory data: $e');
+      debugPrint('Error loading categories: $e');
       setState(() {
         isLoading = false;
       });
     }
   }
 
-  List<Inventory> get filteredItems {
-    return inventoryItems.where((item) {
-      // Apply category filter
+  // Setup stream inventory items
+  void _setupInventoryStream() {
+    _inventoryStream = FirebaseFirestore.instance
+        .collection("inventory")
+        .doc("data")
+        .collection("items")
+        .snapshots()
+        .map((snapshot) {
+      List<Inventory> items = [];
+      for (var doc in snapshot.docs) {
+        Inventory item = Inventory.fromJson(doc.data());
+        item.id = doc.id; // Gunakan document ID sebagai item ID
+        items.add(item);
+      }
+      return items;
+    });
+  }
+
+  // Filter items berdasarkan kategori dan pencarian
+  List<Inventory> filterItems(List<Inventory> items) {
+    return items.where((item) {
+      // Filter kategori
       bool categoryMatch = selectedCategory == null ||
           selectedCategory == "Semua" ||
           item.kategori == selectedCategory;
 
-      // Apply search filter
+      // Filter pencarian
       bool searchMatch = searchQuery.isEmpty ||
           (item.namaBarang?.toLowerCase().contains(searchQuery.toLowerCase()) ??
               false) ||
@@ -132,7 +142,7 @@ class _InventoryViewState extends State<InventoryView> {
           // Fallback to direct Firestore deletion if bloc approach fails
           await FirebaseFirestore.instance
               .collection("inventory")
-              .doc("transaction")
+              .doc("data")
               .collection("items")
               .doc(itemId)
               .delete();
@@ -142,9 +152,6 @@ class _InventoryViewState extends State<InventoryView> {
         ScaffoldMessenger.of(currentContext).showSnackBar(
           const SnackBar(content: Text('Barang berhasil dihapus')),
         );
-
-        // Reload data
-        _loadInventoryData();
       } catch (e) {
         ScaffoldMessenger.of(currentContext).showSnackBar(
           SnackBar(content: Text('Gagal menghapus barang: $e')),
@@ -243,7 +250,6 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   Widget _buildInventoryTable() {
-    final items = filteredItems;
     final authState = context.read<AuthBloc>().state;
     bool hasAccess = false;
 
@@ -252,49 +258,72 @@ class _InventoryViewState extends State<InventoryView> {
       hasAccess = role != 'user' && role != 'admin';
     }
 
-    if (items.isEmpty) {
-      return const Center(child: Text("Tidak ada data barang yang ditemukan"));
-    }
+    return StreamBuilder<List<Inventory>>(
+      stream: _inventoryStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 15,
-          horizontalMargin: 10,
-          headingRowColor: WidgetStateProperty.all(Colors.blue[50]),
-          columns: [
-            DataColumn(
-                label:
-                    Text('No', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Kategori Barang',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Nomor Serial',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Nama Barang',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            if (hasAccess)
-              DataColumn(
-                  label: Text('Action',
-                      style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: List.generate(items.length, (index) {
-            final item = items[index];
-            return DataRow(
-              cells: [
-                DataCell(Center(child: Text('${index + 1}'))),
-                DataCell(Text(item.kategori ?? '-')),
-                DataCell(Text(item.nomorSerial ?? '-')),
-                DataCell(Text(item.namaBarang ?? '-')),
-                if (hasAccess) DataCell(_buildActionButtons(item)),
+        if (snapshot.hasError) {
+          return Center(child: Text("Error: ${snapshot.error}"));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+              child: Text("Tidak ada data barang yang ditemukan"));
+        }
+
+        // Filter items
+        final items = filterItems(snapshot.data!);
+
+        if (items.isEmpty) {
+          return const Center(
+              child: Text("Tidak ada data barang yang ditemukan"));
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SingleChildScrollView(
+            child: DataTable(
+              columnSpacing: 15,
+              horizontalMargin: 10,
+              headingRowColor: MaterialStateProperty.all(Colors.blue[50]),
+              columns: [
+                DataColumn(
+                    label: Text('No',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('Kategori Barang',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('Nomor Serial',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('Nama Barang',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                if (hasAccess)
+                  DataColumn(
+                      label: Text('Action',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
               ],
-            );
-          }),
-        ),
-      ),
+              rows: List.generate(items.length, (index) {
+                final item = items[index];
+                return DataRow(
+                  cells: [
+                    DataCell(Center(child: Text('${index + 1}'))),
+                    DataCell(Text(item.kategori ?? '-')),
+                    DataCell(Text(item.nomorSerial ?? '-')),
+                    DataCell(Text(item.namaBarang ?? '-')),
+                    if (hasAccess) DataCell(_buildActionButtons(item)),
+                  ],
+                );
+              }),
+            ),
+          ),
+        );
+      },
     );
   }
 

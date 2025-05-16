@@ -23,6 +23,8 @@ class _InventoryDetailState extends State<InventoryDetail> {
   late TextEditingController namaBarangController;
   late TextEditingController nomorSerialController;
 
+  late String originalNomorSerial;
+
   String? _selectedKategori;
   List<String> _categories = [];
   bool _showCustomKategoriField = false;
@@ -34,6 +36,8 @@ class _InventoryDetailState extends State<InventoryDetail> {
     final inventory = widget.inventory;
     namaBarangController = TextEditingController(text: inventory.namaBarang);
     nomorSerialController = TextEditingController(text: inventory.nomorSerial);
+    // Simpan nomorSerial awal
+    originalNomorSerial = inventory.nomorSerial ?? '';
     _selectedKategori = inventory.kategori;
     customKategoriController = TextEditingController();
 
@@ -84,17 +88,36 @@ class _InventoryDetailState extends State<InventoryDetail> {
   void _updateData() {
     if (!_formKey.currentState!.validate()) return;
 
+    final newNomorSerial = nomorSerialController.text.trim();
     final kategori = _showCustomKategoriField
         ? customKategoriController.text.trim()
         : _selectedKategori ?? '';
 
-    context.read<InventoryBloc>().add(InventoryEventEditInventory(
-          id: widget.id,
-          namaBarang: namaBarangController.text,
-          nomorSerial: nomorSerialController.text,
-          kategori: kategori,
-          tanggal: widget.inventory.tanggal ?? '',
-        ));
+    // Cek apakah nomorSerial berubah
+    if (originalNomorSerial != newNomorSerial) {
+      // Jika nomorSerial berubah, gunakan event khusus untuk menangani perubahan nomorSerial
+      context.read<InventoryBloc>().add(
+            InventoryEventEditInventory(
+              nomorSerialOld: originalNomorSerial,
+              nomorSerial: newNomorSerial,
+              namaBarang: namaBarangController.text,
+              kategori: kategori,
+              tanggal: widget.inventory.tanggal ?? '',
+            ),
+          );
+    } else {
+      // Jika nomorSerial tidak berubah, gunakan event edit normal
+      context.read<InventoryBloc>().add(
+            InventoryEventEditInventory(
+              id: widget.id,
+              namaBarang: namaBarangController.text,
+              nomorSerial: newNomorSerial,
+              kategori: kategori,
+              tanggal: widget.inventory.tanggal ?? '',
+            ),
+          );
+    }
+
     Navigator.pop(context);
   }
 

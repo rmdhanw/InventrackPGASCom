@@ -24,19 +24,16 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<InventoryEventEditTransaction>(_onEditTransaction);
   }
 
-  // Load all available categories
   Future<void> _onLoadCategories(
       LoadCategories event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      // Get unique categories from existing items
       final snapshot = await _firestore
           .collection("inventory")
           .doc("data")
           .collection("items")
           .get();
 
-      // Extract unique categories from documents
       final Set<String> uniqueCategories = {};
       for (var doc in snapshot.docs) {
         if (doc.data().containsKey('kategori')) {
@@ -46,7 +43,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
       final List<String> kategoriList = uniqueCategories.toList()..sort();
 
-      // Emit loaded state with categories
       emit(InventoryLoaded(categories: kategoriList));
     } catch (e) {
       emit(InventoryError('Gagal memuat kategori: $e'));
@@ -73,7 +69,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Reload categories after adding a new item
       add(LoadCategories());
 
       emit(InventorySuccess('Item berhasil ditambahkan'));
@@ -86,18 +81,40 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       InventoryEventEditInventory event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      await _firestore
-          .collection('inventory')
-          .doc('data')
-          .collection('items')
-          .doc(event.nomorSerial)
-          .update({
-        'kategori': event.kategori,
-        'namaBarang': event.namaBarang,
-        'nomorSerial': event.nomorSerial,
-        'tanggal': event.tanggal,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      if (event.nomorSerialOld != event.nomorSerial) {
+        await _firestore
+            .collection('inventory')
+            .doc('data')
+            .collection('items')
+            .doc(event.nomorSerial)
+            .set({
+          'kategori': event.kategori,
+          'namaBarang': event.namaBarang,
+          'nomorSerial': event.nomorSerial,
+          'tanggal': event.tanggal,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        await _firestore
+            .collection('inventory')
+            .doc('data')
+            .collection('items')
+            .doc(event.nomorSerialOld)
+            .delete();
+      } else {
+        await _firestore
+            .collection('inventory')
+            .doc('data')
+            .collection('items')
+            .doc(event.nomorSerial)
+            .update({
+          'kategori': event.kategori,
+          'namaBarang': event.namaBarang,
+          'nomorSerial': event.nomorSerial,
+          'tanggal': event.tanggal,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
 
       emit(InventoryStateCompleteEdit('Data berhasil diperbarui'));
     } catch (e) {
@@ -105,7 +122,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
   }
 
-  // Add a transaction
   Future<void> _onAddTransaction(
       AddTransaction event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
@@ -136,7 +152,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
   }
 
-  // Delete an inventory item
   Future<void> _onDeleteInventoryItem(
       DeleteInventoryItem event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
@@ -158,7 +173,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       InventoryEventEditTransaction event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      // Update the document in Firestore
       await _firestore
           .collection('inventory')
           .doc('transaction')
@@ -180,12 +194,10 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
   }
 
-// Delete a transaction
   Future<void> _onDeleteTransaction(InventoryEventDeleteTransaction event,
       Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      // Delete the document from Firestore
       await _firestore
           .collection('inventory')
           .doc('transaction')
@@ -199,7 +211,6 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
   }
 
-  // Load an item by serial number
   Future<void> _onLoadItemBySerial(
       LoadItemBySerial event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
@@ -231,14 +242,11 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     String? status,
     String? category,
   }) async* {
-    // Convert dates to DateTime for comparison
     DateTime start = DateFormat('dd-MM-yyyy').parse(startDate);
     DateTime end = DateFormat('dd-MM-yyyy').parse(endDate);
 
-    // Add one day to end date for inclusive range
     end = end.add(const Duration(days: 1));
 
-    // Collection group query to fetch all items regardless of date structure
     Query<Map<String, dynamic>> query = _firestore
         .collection("inventory")
         .doc("transaction")
@@ -247,18 +255,15 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
         .where("tanggal", isLessThanOrEqualTo: endDate)
         .orderBy("tanggal", descending: true);
 
-    // Listen to the query snapshots
     await for (QuerySnapshot<Map<String, dynamic>> snapshot
         in query.snapshots()) {
       try {
         List<Inventory> transactions = [];
 
         for (var doc in snapshot.docs) {
-          // Create transaction from document
           final Map<String, dynamic> data = doc.data();
           final Inventory transaction = Inventory.fromJson(data);
 
-          // Parse document date for filtering
           DateTime? docDate;
           try {
             if (transaction.tanggal != null) {
@@ -268,41 +273,35 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
             debugPrint('Error parsing date: ${transaction.tanggal}');
           }
 
-          // Apply date range filter
           if (docDate == null ||
               docDate.isBefore(start) ||
               docDate.isAfter(end)) {
-            continue; // Skip this document - outside date range
+            continue;
           }
 
-          // Apply status filter if specified
           if (status != null &&
               status != 'Semua' &&
               transaction.status?.toLowerCase() != status.toLowerCase()) {
-            continue; // Skip - status doesn't match
+            continue;
           }
 
-          // Apply category filter if specified
           if (category != null &&
               category != 'Semua' &&
               transaction.kategori?.toLowerCase() != category.toLowerCase()) {
-            continue; // Skip - category doesn't match
+            continue;
           }
 
-          // Document passed all filters, add to list
           transactions.add(transaction);
         }
 
-        // Yield the filtered list
         yield transactions;
       } catch (e) {
         debugPrint('Error processing inventory transactions: $e');
-        yield []; // Yield empty list on error
+        yield [];
       }
     }
   }
 
-  // Helper method to get today's date in formatted string
   String getTodayDateFormatted() {
     final now = DateTime.now();
     return "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
