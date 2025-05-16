@@ -1,42 +1,74 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:inventrack/bloc/bloc.dart';
+import 'package:inventrack/bloc/auth/auth_bloc.dart';
+import 'package:inventrack/bloc/inventory/inventory_bloc.dart';
 import 'package:inventrack/models/inventory.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:inventrack/routes/router_name.dart';
 
 class InventoryTransactionView extends StatefulWidget {
-  const InventoryTransactionView({super.key});
+  final String? serialNumber;
+  const InventoryTransactionView({super.key, this.serialNumber});
 
   @override
   State<InventoryTransactionView> createState() =>
       _InventoryTransactionViewState();
 }
 
-class _InventoryTransactionViewState extends State<InventoryTransactionView> {
-  bool isLoading = true;
-  List<Inventory> inventoryItems = [];
-  String? selectedCategory;
-  List<String> categories = ["Semua"];
+class _InventoryTransactionViewState extends State<InventoryTransactionView>
+    with SingleTickerProviderStateMixin {
+  final InventoryBloc _inventoryBloc = InventoryBloc();
 
-  TextEditingController searchController = TextEditingController();
-  String searchQuery = "";
+  String _startDate = DateFormat('dd-MM-yyyy')
+      .format(DateTime.now().subtract(const Duration(days: 30)));
+  String _endDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+  String? _selectedStatus;
+  String? _selectedCategory;
+
+  final List<String> _statusOptions = ['Semua Status', 'Masuk', 'Keluar'];
+  List<String> _categoryOptions = ['Semua Kategori'];
+  bool _isLoadingCategories = true;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchKeyword = '';
+
+  late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
-    _loadInventoryData();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _animController.forward();
+
+    // Initialize filters
+    _selectedStatus = _statusOptions[0];
+    _selectedCategory = _categoryOptions[0];
+
+    // Set search field with serial number if provided
+    if (widget.serialNumber != null && widget.serialNumber!.isNotEmpty) {
+      _searchController.text = widget.serialNumber!;
+      _searchKeyword = widget.serialNumber!.toLowerCase();
+    }
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchKeyword = _searchController.text.toLowerCase();
+      });
+    });
+
+    // Load categories from Firestore
+    _loadCategories();
   }
 
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadInventoryData() async {
+  Future<void> _loadCategories() async {
     setState(() {
-      isLoading = true;
+      _isLoadingCategories = true;
     });
 
     try {
@@ -44,117 +76,290 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView> {
       QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
           .instance
           .collection("inventory")
-          .doc("transaction")
+          .doc("data")
           .collection("items")
           .get();
 
-      // Convert snapshots to inventory items
-      List<Inventory> items = [];
+      // Extract unique categories
+      Set<String> uniqueCategories = {"Semua Kategori"};
       for (var doc in snapshot.docs) {
-        Inventory item = Inventory.fromJson(doc.data());
-        item.id = doc.id; // Use document ID as the item ID
-        items.add(item);
-      }
-
-      // Get unique categories
-      Set<String> uniqueCategories = {"Semua"};
-      for (var item in items) {
+        final item = Inventory.fromJson(doc.data());
         if (item.kategori != null && item.kategori!.isNotEmpty) {
           uniqueCategories.add(item.kategori!);
         }
       }
 
       setState(() {
-        inventoryItems = items;
-        categories = uniqueCategories.toList();
-        isLoading = false;
+        _categoryOptions = uniqueCategories.toList();
+        _isLoadingCategories = false;
       });
     } catch (e) {
-      debugPrint('Error loading inventory data: $e');
+      debugPrint('Error loading categories: $e');
       setState(() {
-        isLoading = false;
+        _isLoadingCategories = false;
       });
-    }
-  }
-
-  List<Inventory> get filteredItems {
-    return inventoryItems.where((item) {
-      // Apply category filter
-      bool categoryMatch = selectedCategory == null ||
-          selectedCategory == "Semua" ||
-          item.kategori == selectedCategory;
-
-      // Apply search filter
-      bool searchMatch = searchQuery.isEmpty ||
-          (item.namaBarang?.toLowerCase().contains(searchQuery.toLowerCase()) ??
-              false) ||
-          (item.nomorSerial
-                  ?.toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ??
-              false) ||
-          (item.kategori?.toLowerCase().contains(searchQuery.toLowerCase()) ??
-              false);
-
-      return categoryMatch && searchMatch;
-    }).toList();
-  }
-
-  Future<void> _confirmDeleteItem(String itemId) async {
-    final BuildContext currentContext = context;
-    bool confirmDelete = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Konfirmasi Hapus"),
-            content:
-                const Text("Apakah Anda yakin ingin menghapus barang ini?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Batal"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _confirmDeleteItem(itemId);
-                },
-                child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-
-    if (!mounted) return;
-
-    if (confirmDelete) {
-      try {
-        await FirebaseFirestore.instance
-            .collection("inventory")
-            .doc(itemId)
-            .delete();
-
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          const SnackBar(content: Text('Barang berhasil dihapus')),
-        );
-
-        // Reload data
-        _loadInventoryData();
-      } catch (e) {
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus barang: $e')),
-        );
-      }
     }
   }
 
   @override
+  void dispose() {
+    _animController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickStartDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateFormat('dd-MM-yyyy').parse(_startDate),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (date != null) {
+      setState(() {
+        _startDate = DateFormat('dd-MM-yyyy').format(date);
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateFormat('dd-MM-yyyy').parse(_endDate),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (date != null) {
+      setState(() {
+        _endDate = DateFormat('dd-MM-yyyy').format(date);
+      });
+    }
+  }
+
+  Widget _buildTransactionCard(Inventory transaction, int index) {
+    // Status color indicator
+    Color statusColor = transaction.status?.toLowerCase() == 'masuk'
+        ? Colors.green[100]!
+        : Colors.red[100]!;
+
+    return AnimatedOpacity(
+      opacity: 1,
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      child: Card(
+        color: statusColor,
+        elevation: 5,
+        margin: const EdgeInsets.only(bottom: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            final authState = context.read<AuthBloc>().state;
+            bool hasAccess = false;
+
+            if (authState is AuthStateAuthenticated) {
+              final role = authState.handle.toLowerCase();
+              hasAccess = role != 'user' || role != 'admin';
+            }
+
+            if (hasAccess) {
+              try {
+                // Make sure transaction.id is not null before navigation
+                if (transaction.id.isNotEmpty) {
+                  context.goNamed(
+                    Routes.inventoryTransactionDetail,
+                    pathParameters: {"id": transaction.id},
+                    extra: transaction,
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Invalid transaction ID :  ${transaction.id}')),
+                  );
+                }
+              } catch (e) {
+                // Debug information to show what's going wrong
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Navigation error: $e')),
+                );
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Anda tidak memiliki akses ke detail.')),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Barang: ${transaction.namaBarang ?? '-'}",
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                _infoText("Nomor Serial", transaction.nomorSerial),
+                _infoText("Kategori", transaction.kategori),
+                _infoText("Kondisi", transaction.kondisi),
+                _infoText("Status", transaction.status),
+                _infoText("Keterangan", transaction.keterangan),
+                _infoText("Tanggal", transaction.tanggal),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoText(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        "$label: ${value ?? '-'}",
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: _pickStartDate,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "Dari: $_startDate",
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: InkWell(
+            onTap: _pickEndDate,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "Sampai: $_endDate",
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterSelectors() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: _selectedStatus,
+                hint: const Text("Status"),
+                onChanged: (String? value) {
+                  setState(() {
+                    _selectedStatus = value;
+                  });
+                },
+                items: _statusOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: _isLoadingCategories
+                ? const Center(
+                    child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2)))
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedCategory,
+                      hint: const Text("Kategori"),
+                      onChanged: (String? value) {
+                        setState(() {
+                          _selectedCategory = value;
+                        });
+                      },
+                      items: _categoryOptions.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: "Cari berdasarkan nama barang atau nomor serial...",
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final contentWidth = isTablet ? screenWidth * 0.7 : screenWidth;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "INVENTORY MANAGEMENT",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text("TRANSAKSI INVENTORY",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blue,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -162,195 +367,78 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView> {
             Navigator.pop(context);
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              // Navigate to add item page
-              // context.goNamed(Routes.addInventory);
-            },
-          )
-        ],
       ),
-      body: Column(
-        children: [
-          _buildFilterSection(),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildInventoryTable(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterSection() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Search bar
-          TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: "Cari barang...",
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-            ),
-            onChanged: (value) {
-              setState(() {
-                searchQuery = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          // Category filter
-          DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              hintText: "Pilih Kategori",
-            ),
-            value: selectedCategory,
-            items: categories
-                .map((category) => DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                selectedCategory = value;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInventoryTable() {
-    final items = filteredItems;
-
-    if (items.isEmpty) {
-      return const Center(child: Text("Tidak ada data barang yang ditemukan"));
-    }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 15,
-          horizontalMargin: 10,
-          headingRowColor: WidgetStateProperty.all(Colors.blue[50]),
-          columns: const [
-            DataColumn(
-                label:
-                    Text('No', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Kategori Barang',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Nomor Serial',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Nama Barang',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Action',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: List.generate(items.length, (index) {
-            final item = items[index];
-            return DataRow(
-              cells: [
-                DataCell(Center(child: Text('${index + 1}'))),
-                DataCell(Text(item.kategori ?? '-')),
-                DataCell(Text(item.nomorSerial ?? '-')),
-                DataCell(Text(item.namaBarang ?? '-')),
-                DataCell(_buildActionButtons(item)),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(Inventory item) {
-    return IconButton(
-      icon: Icon(Icons.edit, color: Colors.blue),
-      onPressed: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Pilih Tindakan"),
-              content: SizedBox(
-                width: double.minPositive,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ListTile(
-                      leading: Icon(Icons.edit, color: Colors.blue),
-                      title: Text("Edit"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Navigate to edit page
-                        // context.goNamed(
-                        //   Routes.editInventory,
-                        //   pathParameters: {"id": item.id ?? ""},
-                        //   extra: item,
-                        // );
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.delete, color: Colors.red),
-                      title: Text("Hapus"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        // _deleteItem();
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.transfer_within_a_station,
-                          color: Colors.green),
-                      title: Text("Transaksi"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Navigate to transaction page
-                        // context.goNamed(
-                        //   Routes.inventoryTransaction,
-                        //   pathParameters: {"id": item.id ?? ""},
-                        // );
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.history, color: Colors.purple),
-                      title: Text("History Transaksi"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Navigate to history page
-                        // context.goNamed(
-                        //   Routes.transactionHistory,
-                        //   pathParameters: {"id": item.id ?? ""},
-                        // );
-                      },
-                    ),
+                    _buildSearchField(),
+                    _buildDateRangeSelector(),
+                    const SizedBox(height: 12),
+                    _buildFilterSelectors(),
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: contentWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: StreamBuilder<List<Inventory>>(
+                      stream: _inventoryBloc.streamInventoryTransactions(
+                        startDate: _startDate,
+                        endDate: _endDate,
+                        status: _selectedStatus == 'Semua Status'
+                            ? null
+                            : _selectedStatus,
+                        category: _selectedCategory == 'Semua Kategori'
+                            ? null
+                            : _selectedCategory,
+                      ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                              child: Text("Tidak ada data transaksi."));
+                        }
+
+                        final transactions =
+                            snapshot.data!.where((transaction) {
+                          final nama =
+                              transaction.namaBarang?.toLowerCase() ?? '';
+                          final serial =
+                              transaction.nomorSerial?.toLowerCase() ?? '';
+                          return nama.contains(_searchKeyword) ||
+                              serial.contains(_searchKeyword);
+                        }).toList();
+
+                        if (transactions.isEmpty) {
+                          return const Center(
+                              child: Text("Tidak ditemukan hasil pencarian."));
+                        }
+
+                        return ListView.builder(
+                          itemCount: transactions.length,
+                          itemBuilder: (context, index) =>
+                              _buildTransactionCard(transactions[index], index),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

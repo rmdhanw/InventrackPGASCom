@@ -15,8 +15,10 @@ import 'package:inventrack/screens/authscreens/loginpage.dart';
 import 'package:inventrack/screens/authscreens/signuppage.dart';
 import 'package:inventrack/screens/inventory/inventory_detail.dart';
 import 'package:inventrack/screens/inventory/inventory_form.dart';
-import 'package:inventrack/screens/inventory/inventory_formtransaction.dart';
+import 'package:inventrack/screens/inventory/inventory_transactiondetail.dart';
+import 'package:inventrack/screens/inventory/inventory_transactionform.dart';
 import 'package:inventrack/screens/inventory/inventory_menu.dart';
+import 'package:inventrack/screens/inventory/inventory_transactionview.dart';
 import 'package:inventrack/screens/inventory/inventory_view.dart';
 import 'router_name.dart';
 
@@ -166,6 +168,26 @@ final router = GoRouter(
                         state,
                       ),
                     ),
+                  ]),
+              GoRoute(
+                  path: 'inventoryTransactionView',
+                  name: Routes.inventoryTransactionView,
+                  pageBuilder: (context, state) => buildTransitionPage(
+                      InventoryTransactionView(
+                        serialNumber: state.uri.queryParameters['id'],
+                      ),
+                      state),
+                  routes: [
+                    GoRoute(
+                        path: 'inventoryTransactionDetail/:id',
+                        name: Routes.inventoryTransactionDetail,
+                        pageBuilder: (context, state) => buildTransitionPage(
+                              InventoryTransactionDetail(
+                                state.pathParameters['id'] ?? '',
+                                state.extra as Inventory,
+                              ),
+                              state,
+                            )),
                   ]),
             ]),
         GoRoute(

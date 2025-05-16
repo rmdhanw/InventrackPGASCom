@@ -23,10 +23,9 @@ class InventoryMenu extends StatelessWidget {
         final handle = state.handle;
 
         final menuItems = _menuItems.where((item) {
-          if (handle == 'user') {
-            return item['title'] == "Request User" ||
-                item['title'] == "Approval Carpool" ||
-                item['title'] == "Carpool Services";
+          if (handle == 'user' || handle == 'admin') {
+            return item['title'] == "Riwayat Transaksi Barang" ||
+                item['title'] == "Data Barang";
           }
           return true;
         }).toList();
@@ -87,13 +86,13 @@ class InventoryMenu extends StatelessWidget {
     },
     {
       'icon': Icons.input,
-      'title': "Input Tranksaksi Barang",
+      'title': "Input Transaksi Barang",
       'route': Routes.inventoryTransactionForm,
     },
     {
       'icon': Icons.history,
-      'title': "Riwayat Tranksaksi Barang",
-      'route': Routes.inventoryTransactionHistory,
+      'title': "Riwayat Transaksi Barang",
+      'route': Routes.inventoryTransactionView,
     },
     {
       'icon': Icons.list_alt,

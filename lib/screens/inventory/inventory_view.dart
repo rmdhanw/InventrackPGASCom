@@ -244,6 +244,13 @@ class _InventoryViewState extends State<InventoryView> {
 
   Widget _buildInventoryTable() {
     final items = filteredItems;
+    final authState = context.read<AuthBloc>().state;
+    bool hasAccess = false;
+
+    if (authState is AuthStateAuthenticated) {
+      final role = authState.handle.toLowerCase();
+      hasAccess = role != 'user' && role != 'admin';
+    }
 
     if (items.isEmpty) {
       return const Center(child: Text("Tidak ada data barang yang ditemukan"));
@@ -256,7 +263,7 @@ class _InventoryViewState extends State<InventoryView> {
           columnSpacing: 15,
           horizontalMargin: 10,
           headingRowColor: WidgetStateProperty.all(Colors.blue[50]),
-          columns: const [
+          columns: [
             DataColumn(
                 label:
                     Text('No', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -269,9 +276,10 @@ class _InventoryViewState extends State<InventoryView> {
             DataColumn(
                 label: Text('Nama Barang',
                     style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(
-                label: Text('Action',
-                    style: TextStyle(fontWeight: FontWeight.bold))),
+            if (hasAccess)
+              DataColumn(
+                  label: Text('Action',
+                      style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: List.generate(items.length, (index) {
             final item = items[index];
@@ -281,7 +289,7 @@ class _InventoryViewState extends State<InventoryView> {
                 DataCell(Text(item.kategori ?? '-')),
                 DataCell(Text(item.nomorSerial ?? '-')),
                 DataCell(Text(item.namaBarang ?? '-')),
-                DataCell(_buildActionButtons(item)),
+                if (hasAccess) DataCell(_buildActionButtons(item)),
               ],
             );
           }),
@@ -345,8 +353,8 @@ class _InventoryViewState extends State<InventoryView> {
                         Navigator.pop(context);
                         // Navigate to transaction history page
                         context.goNamed(
-                          Routes.inventoryTransactionHistory,
-                          pathParameters: {"id": item.nomorSerial ?? ""},
+                          Routes.inventoryTransactionView,
+                          queryParameters: {"id": item.nomorSerial ?? ""},
                           extra: item,
                         );
                       },

@@ -39,5 +39,7 @@ abstract class Routes {
 
   static String inventoryViewDetail = 'inventoryViewDetail';
 
-  static String inventoryTransactionHistory = 'inventoryTransactionHistory';
+  static String inventoryTransactionView = 'inventoryTransactionView';
+
+  static String inventoryTransactionDetail = 'inventoryTransactionDetail';
 }
