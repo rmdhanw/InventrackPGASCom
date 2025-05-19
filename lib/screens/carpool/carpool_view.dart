@@ -28,7 +28,7 @@ class _CarpoolViewState extends State<CarpoolView> {
   List<Carpool> selectedEvents = [];
 
   bool isLoading = true;
-  bool isCalendarView = true; // Toggle between calendar and list view
+  bool isCalendarView = true;
 
   @override
   void initState() {
@@ -117,10 +117,8 @@ class _CarpoolViewState extends State<CarpoolView> {
   }
 
   List<Carpool> _getEventsForDay(DateTime day) {
-    // Normalize date to avoid time issues
     final normalizedDay = DateTime(day.year, day.month, day.day);
 
-    // Apply driver filter
     List<Carpool> events = carpoolEvents[normalizedDay] ?? [];
 
     if (selectedDriver != null && selectedDriver != "Semua") {
@@ -163,7 +161,6 @@ class _CarpoolViewState extends State<CarpoolView> {
         ),
         backgroundColor: Colors.blue,
         actions: [
-          // Toggle between calendar and list view
           IconButton(
             icon: Icon(isCalendarView ? Icons.list : Icons.calendar_month),
             onPressed: () {
@@ -255,7 +252,6 @@ class _CarpoolViewState extends State<CarpoolView> {
             setState(() {
               this.focusedDay = focusedDay;
             });
-            // Load data for the new month
             _loadCarpoolDataForMonth();
           },
           calendarStyle: const CalendarStyle(
@@ -309,7 +305,6 @@ class _CarpoolViewState extends State<CarpoolView> {
   }
 
   Widget _buildListView() {
-    // Flatten all events for list view
     List<Carpool> allCarpoolData = [];
     carpoolEvents.forEach((date, events) {
       if (selectedDriver == null || selectedDriver == "Semua") {
@@ -320,11 +315,10 @@ class _CarpoolViewState extends State<CarpoolView> {
       }
     });
 
-    // Sort by date
     allCarpoolData.sort((a, b) {
       DateTime dateA = _parseDate(a.formattedDate);
       DateTime dateB = _parseDate(b.formattedDate);
-      return dateB.compareTo(dateA); // Descending order
+      return dateB.compareTo(dateA);
     });
 
     return allCarpoolData.isEmpty

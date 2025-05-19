@@ -33,3 +33,5 @@ class AuthStateSuccess extends AuthState {
   final String message;
   AuthStateSuccess(this.message);
 }
+
+class AuthStatePasswordReset extends AuthState {}

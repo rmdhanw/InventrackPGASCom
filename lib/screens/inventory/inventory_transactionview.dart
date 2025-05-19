@@ -45,12 +45,8 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
       duration: const Duration(milliseconds: 500),
     );
     _animController.forward();
-
-    // Initialize filters
     _selectedStatus = _statusOptions[0];
     _selectedCategory = _categoryOptions[0];
-
-    // Set search field with serial number if provided
     if (widget.serialNumber != null && widget.serialNumber!.isNotEmpty) {
       _searchController.text = widget.serialNumber!;
       _searchKeyword = widget.serialNumber!.toLowerCase();
@@ -61,8 +57,6 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
         _searchKeyword = _searchController.text.toLowerCase();
       });
     });
-
-    // Load categories from Firestore
     _loadCategories();
   }
 
@@ -72,15 +66,12 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
     });
 
     try {
-      // Get reference to the inventory collection
       QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
           .instance
           .collection("inventory")
           .doc("data")
           .collection("items")
           .get();
-
-      // Extract unique categories
       Set<String> uniqueCategories = {"Semua Kategori"};
       for (var doc in snapshot.docs) {
         final item = Inventory.fromJson(doc.data());
@@ -137,7 +128,6 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
   }
 
   Widget _buildTransactionCard(Inventory transaction, int index) {
-    // Status color indicator
     Color statusColor = transaction.status?.toLowerCase() == 'masuk'
         ? Colors.green[100]!
         : Colors.red[100]!;
@@ -163,7 +153,6 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
 
             if (hasAccess) {
               try {
-                // Make sure transaction.id is not null before navigation
                 if (transaction.id.isNotEmpty) {
                   context.goNamed(
                     Routes.inventoryTransactionDetail,
@@ -178,7 +167,6 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
                   );
                 }
               } catch (e) {
-                // Debug information to show what's going wrong
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Navigation error: $e')),
                 );

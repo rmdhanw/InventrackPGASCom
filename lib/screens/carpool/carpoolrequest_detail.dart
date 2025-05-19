@@ -233,7 +233,6 @@ class _CarpoolDetailState extends State<CarpoolRequestDetail>
     );
   }
 
-  // Helper widgets and functions (same as original, unchanged)
   Widget _buildTextField(String label, TextEditingController controller,
       {bool isNumber = false, VoidCallback? onTap}) {
     return Padding(

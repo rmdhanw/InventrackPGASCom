@@ -36,12 +36,9 @@ class _InventoryDetailState extends State<InventoryDetail> {
     final inventory = widget.inventory;
     namaBarangController = TextEditingController(text: inventory.namaBarang);
     nomorSerialController = TextEditingController(text: inventory.nomorSerial);
-    // Simpan nomorSerial awal
     originalNomorSerial = inventory.nomorSerial ?? '';
     _selectedKategori = inventory.kategori;
     customKategoriController = TextEditingController();
-
-    // Load categories when the form is initialized
     context.read<InventoryBloc>().add(LoadCategories());
   }
 
@@ -92,10 +89,7 @@ class _InventoryDetailState extends State<InventoryDetail> {
     final kategori = _showCustomKategoriField
         ? customKategoriController.text.trim()
         : _selectedKategori ?? '';
-
-    // Cek apakah nomorSerial berubah
     if (originalNomorSerial != newNomorSerial) {
-      // Jika nomorSerial berubah, gunakan event khusus untuk menangani perubahan nomorSerial
       context.read<InventoryBloc>().add(
             InventoryEventEditInventory(
               nomorSerialOld: originalNomorSerial,
@@ -106,7 +100,6 @@ class _InventoryDetailState extends State<InventoryDetail> {
             ),
           );
     } else {
-      // Jika nomorSerial tidak berubah, gunakan event edit normal
       context.read<InventoryBloc>().add(
             InventoryEventEditInventory(
               id: widget.id,
@@ -234,7 +227,6 @@ class _InventoryDetailState extends State<InventoryDetail> {
     required String label,
     required List<String> items,
   }) {
-    // Add 'Lainnya' option to the list
     final extendedItems = [...items, 'Lainnya'];
 
     return Padding(

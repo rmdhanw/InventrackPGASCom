@@ -22,7 +22,6 @@ class _InventoryFormState extends State<InventoryForm> {
   @override
   void initState() {
     super.initState();
-    // Load categories when the form is initialized
     context.read<InventoryBloc>().add(LoadCategories());
   }
 
@@ -84,7 +83,6 @@ class _InventoryFormState extends State<InventoryForm> {
             );
           }
 
-          // Update categories when they are loaded
           if (state is InventoryLoaded || state is CategoriesLoaded) {
             if (state is InventoryLoaded) {
               _categories = state.categories;
@@ -164,7 +162,6 @@ class _InventoryFormState extends State<InventoryForm> {
     required String label,
     required List<String> items,
   }) {
-    // Add 'Lainnya' option to the list
     final extendedItems = [...items, 'Lainnya'];
 
     return Padding(

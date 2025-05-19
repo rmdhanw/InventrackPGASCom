@@ -115,7 +115,6 @@ class _InventoryTransactionDetailState
   }
 
   void _deleteData() {
-    // Use DeleteInventoryTransaction for transaction items
     context
         .read<InventoryBloc>()
         .add(InventoryEventDeleteTransaction(widget.id));
@@ -285,7 +284,6 @@ class _InventoryTransactionDetailState
     required String label,
     required List<String> items,
   }) {
-    // Add 'Lainnya' option to the list
     final extendedItems = [...items, 'Lainnya'];
 
     return Padding(

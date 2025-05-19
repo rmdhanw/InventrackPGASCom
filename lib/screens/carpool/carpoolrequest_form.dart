@@ -81,8 +81,6 @@ class RequestCarpoolState extends State<RequestCarpool>
       String? userName;
 
       for (final role in rolesList) {
-        // final roleId = role.replaceAll(' ', '');
-
         final doc = await FirebaseFirestore.instance
             .collection('roles')
             .doc(role)

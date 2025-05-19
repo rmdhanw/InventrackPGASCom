@@ -19,8 +19,6 @@ class _InventoryViewState extends State<InventoryView> {
 
   TextEditingController searchController = TextEditingController();
   String searchQuery = "";
-
-  // Stream untuk data inventory
   Stream<List<Inventory>>? _inventoryStream;
 
   @override
@@ -36,7 +34,6 @@ class _InventoryViewState extends State<InventoryView> {
     super.dispose();
   }
 
-  // Fungsi untuk memuat kategori-kategori unik
   Future<void> _loadCategories() async {
     try {
       QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
@@ -46,7 +43,6 @@ class _InventoryViewState extends State<InventoryView> {
           .collection("items")
           .get();
 
-      // Ekstrak kategori unik
       Set<String> uniqueCategories = {"Semua"};
       for (var doc in snapshot.docs) {
         if (doc.data()['kategori'] != null &&
@@ -67,7 +63,6 @@ class _InventoryViewState extends State<InventoryView> {
     }
   }
 
-  // Setup stream inventory items
   void _setupInventoryStream() {
     _inventoryStream = FirebaseFirestore.instance
         .collection("inventory")
@@ -78,22 +73,19 @@ class _InventoryViewState extends State<InventoryView> {
       List<Inventory> items = [];
       for (var doc in snapshot.docs) {
         Inventory item = Inventory.fromJson(doc.data());
-        item.id = doc.id; // Gunakan document ID sebagai item ID
+        item.id = doc.id;
         items.add(item);
       }
       return items;
     });
   }
 
-  // Filter items berdasarkan kategori dan pencarian
   List<Inventory> filterItems(List<Inventory> items) {
     return items.where((item) {
-      // Filter kategori
       bool categoryMatch = selectedCategory == null ||
           selectedCategory == "Semua" ||
           item.kategori == selectedCategory;
 
-      // Filter pencarian
       bool searchMatch = searchQuery.isEmpty ||
           (item.namaBarang?.toLowerCase().contains(searchQuery.toLowerCase()) ??
               false) ||
@@ -109,7 +101,6 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   Future<void> _deleteItem(String itemId) async {
-    final BuildContext currentContext = context;
     bool confirmDelete = await showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -134,12 +125,10 @@ class _InventoryViewState extends State<InventoryView> {
 
     if (confirmDelete) {
       try {
-        // Try using the DeleteInventoryItem event from the bloc
         try {
           final bloc = BlocProvider.of<InventoryBloc>(context);
           bloc.add(DeleteInventoryItem(itemId));
         } catch (blocError) {
-          // Fallback to direct Firestore deletion if bloc approach fails
           await FirebaseFirestore.instance
               .collection("inventory")
               .doc("data")
@@ -148,12 +137,13 @@ class _InventoryViewState extends State<InventoryView> {
               .delete();
         }
 
-        // Show success message
-        ScaffoldMessenger.of(currentContext).showSnackBar(
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Barang berhasil dihapus')),
         );
       } catch (e) {
-        ScaffoldMessenger.of(currentContext).showSnackBar(
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menghapus barang: $e')),
         );
       }
@@ -179,7 +169,6 @@ class _InventoryViewState extends State<InventoryView> {
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () {
-              // Navigate to add item page
               context.goNamed(Routes.inventoryForm);
             },
           )
@@ -203,7 +192,6 @@ class _InventoryViewState extends State<InventoryView> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Search bar
           TextField(
             controller: searchController,
             decoration: InputDecoration(
@@ -222,7 +210,6 @@ class _InventoryViewState extends State<InventoryView> {
             },
           ),
           const SizedBox(height: 16),
-          // Category filter
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -275,7 +262,6 @@ class _InventoryViewState extends State<InventoryView> {
               child: Text("Tidak ada data barang yang ditemukan"));
         }
 
-        // Filter items
         final items = filterItems(snapshot.data!);
 
         if (items.isEmpty) {
@@ -289,7 +275,7 @@ class _InventoryViewState extends State<InventoryView> {
             child: DataTable(
               columnSpacing: 15,
               horizontalMargin: 10,
-              headingRowColor: MaterialStateProperty.all(Colors.blue[50]),
+              headingRowColor: WidgetStateProperty.all(Colors.blue[50]),
               columns: [
                 DataColumn(
                     label: Text('No',
@@ -367,7 +353,6 @@ class _InventoryViewState extends State<InventoryView> {
                       title: const Text("Transaksi"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to transaction form page
                         context.goNamed(
                           Routes.inventoryTransactionForm,
                           queryParameters: {"id": item.nomorSerial ?? ""},
@@ -380,7 +365,6 @@ class _InventoryViewState extends State<InventoryView> {
                       title: const Text("History Transaksi"),
                       onTap: () {
                         Navigator.pop(context);
-                        // Navigate to transaction history page
                         context.goNamed(
                           Routes.inventoryTransactionView,
                           queryParameters: {"id": item.nomorSerial ?? ""},

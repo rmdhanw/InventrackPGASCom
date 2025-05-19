@@ -38,20 +38,14 @@ class AuthStateAuthenticated extends AuthState {
 
 class AuthEventLogout extends AuthEvent {}
 
-class AuthEventRequestResetConfirmation extends AuthEvent {
-  final String email;
-  AuthEventRequestResetConfirmation(this.email);
-}
-
 class AuthEventForgotPassword extends AuthEvent {
   final String email;
   AuthEventForgotPassword(this.email);
 }
 
-class AuthEventConfirmResetPassword extends AuthEvent {
-  final String oobCode;
+class AuthEventResetPassword extends AuthEvent {
+  final String email;
   final String newPassword;
 
-  AuthEventConfirmResetPassword(
-      {required this.oobCode, required this.newPassword});
+  AuthEventResetPassword(this.email, this.newPassword);
 }

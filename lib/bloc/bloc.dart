@@ -1,5 +1,4 @@
 export './auth/auth_bloc.dart';
-export './product/product_bloc.dart';
 export './carpool/carpool_bloc.dart';
 export './inventory/inventory_bloc.dart';
 
