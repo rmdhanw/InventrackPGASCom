@@ -259,18 +259,41 @@ class RequestCarpoolState extends State<RequestCarpool>
                               onTap: () => _selectDate(context),
                             ),
                             const SizedBox(height: 20),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[100],
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 15),
-                                minimumSize: const Size(double.infinity, 50),
-                              ),
-                              onPressed: _submitForm,
-                              child: const Text('Submit',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black)),
+                            BlocBuilder<CarpoolBloc, CarpoolState>(
+                              builder: (context, state) {
+                                final isLoading =
+                                    state is CarpoolStateLoadingAdd;
+
+                                return ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue[100],
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 15),
+                                    minimumSize:
+                                        const Size(double.infinity, 50),
+                                  ),
+                                  onPressed: isLoading ? null : _submitForm,
+                                  child: isLoading
+                                      ? SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.black,
+                                            strokeWidth:
+                                                constraints.maxWidth < 360
+                                                    ? 1.5
+                                                    : 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Submit',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                );
+                              },
                             ),
                           ],
                         ),

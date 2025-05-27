@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventrack/bloc/auth/auth_bloc.dart';
-import 'package:inventrack/bloc/carpool/carpool_bloc.dart';
 import 'package:inventrack/models/carpool.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,9 +16,15 @@ class CarpoolViewRequest extends StatefulWidget {
 
 class _CarpoolViewRequestState extends State<CarpoolViewRequest>
     with SingleTickerProviderStateMixin {
-  final CarpoolBloc _carpoolBloc = CarpoolBloc();
-  String _selectedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+  // Ubah dari single date ke date range
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
+
   late AnimationController _animController;
+
+  // List untuk menyimpan data carpool dari rentang tanggal
+  List<Carpool> _carpoolData = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -29,6 +34,9 @@ class _CarpoolViewRequestState extends State<CarpoolViewRequest>
       duration: const Duration(milliseconds: 500),
     );
     _animController.forward();
+
+    // Load data awal
+    _loadCarpoolData();
   }
 
   @override
@@ -37,17 +45,108 @@ class _CarpoolViewRequestState extends State<CarpoolViewRequest>
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
+  // Method untuk memuat data carpool berdasarkan rentang tanggal
+  Future<void> _loadCarpoolData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final startDateFormatted = DateFormat('dd-MM-yyyy').format(_startDate);
+      final endDateFormatted = DateFormat('dd-MM-yyyy').format(_endDate);
+
+      // Menggunakan method getCarpoolRequestInDateRange yang perlu ditambahkan ke CarpoolBloc
+      final carpoolList = await _getCarpoolRequestInDateRange(
+          startDateFormatted, endDateFormatted);
+
+      setState(() {
+        _carpoolData = carpoolList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
+    }
+  }
+
+  // Method untuk mendapatkan carpool request dalam rentang tanggal
+  Future<List<Carpool>> _getCarpoolRequestInDateRange(
+      String startDate, String endDate) async {
+    List<Carpool> allCarpoolRequests = [];
+
+    DateTime start = DateFormat('dd-MM-yyyy').parse(startDate);
+    DateTime end = DateFormat('dd-MM-yyyy').parse(endDate);
+
+    for (DateTime date = start;
+        !date.isAfter(end);
+        date = date.add(const Duration(days: 1))) {
+      String formattedDate = DateFormat('dd-MM-yyyy').format(date);
+
+      try {
+        final snapshot = await FirebaseFirestore.instance
+            .collection("carpool")
+            .doc(formattedDate)
+            .collection("carpoolRequest")
+            .orderBy("createdAt", descending: true)
+            .withConverter<Carpool>(
+              fromFirestore: (snapshot, _) =>
+                  Carpool.fromJson(snapshot.data()!),
+              toFirestore: (carpool, _) => carpool.toJson(),
+            )
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          allCarpoolRequests
+              .addAll(snapshot.docs.map((e) => e.data()).toList());
+        }
+      } catch (e) {
+        debugPrint(
+            'Error loading carpool requests for date $formattedDate: $e');
+      }
+    }
+
+    return allCarpoolRequests;
+  }
+
+  // Method untuk memilih tanggal mulai
+  Future<void> _pickStartDate() async {
     final date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _startDate,
       firstDate: DateTime(2024),
       lastDate: DateTime(2030),
     );
     if (date != null) {
       setState(() {
-        _selectedDate = DateFormat('dd-MM-yyyy').format(date);
+        _startDate = date;
+        // Jika tanggal mulai lebih besar dari tanggal akhir, set tanggal akhir sama dengan tanggal mulai
+        if (_startDate.isAfter(_endDate)) {
+          _endDate = _startDate;
+        }
       });
+      _loadCarpoolData();
+    }
+  }
+
+  // Method untuk memilih tanggal akhir
+  Future<void> _pickEndDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _endDate,
+      firstDate: _startDate, // Tanggal akhir tidak boleh sebelum tanggal mulai
+      lastDate: DateTime(2030),
+    );
+    if (date != null) {
+      setState(() {
+        _endDate = date;
+      });
+      _loadCarpoolData();
     }
   }
 
@@ -120,6 +219,115 @@ class _CarpoolViewRequestState extends State<CarpoolViewRequest>
     );
   }
 
+  // Widget untuk menampilkan filter rentang tanggal
+  Widget _buildDateRangeFilter() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Filter Rentang Tanggal",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _pickStartDate,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Tanggal Mulai",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('dd-MM-yyyy').format(_startDate),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: _pickEndDate,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Tanggal Akhir",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('dd-MM-yyyy').format(_endDate),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Total: ${_endDate.difference(_startDate).inDays + 1} hari",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -136,61 +344,25 @@ class _CarpoolViewRequestState extends State<CarpoolViewRequest>
         builder: (context, constraints) {
           return Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: InkWell(
-                  onTap: _pickDate,
-                  borderRadius: BorderRadius.circular(8),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) =>
-                        FadeTransition(opacity: animation, child: child),
-                    child: Container(
-                      key: ValueKey(_selectedDate),
-                      width: contentWidth,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "Tanggal: $_selectedDate",
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              // Widget filter rentang tanggal
+              _buildDateRangeFilter(),
+
               Expanded(
                 child: Center(
                   child: Container(
                     width: contentWidth,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: StreamBuilder<QuerySnapshot<Carpool>>(
-                      stream: _carpoolBloc
-                          .streamCarpoolRequestByDate(_selectedDate),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(
-                              child: Text("Tidak ada data carpool."));
-                        }
-
-                        final carpools =
-                            snapshot.data!.docs.map((e) => e.data()).toList();
-
-                        return ListView.builder(
-                          itemCount: carpools.length,
-                          itemBuilder: (context, index) =>
-                              _buildCarpoolCard(carpools[index], index),
-                        );
-                      },
-                    ),
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _carpoolData.isEmpty
+                            ? const Center(
+                                child: Text("Tidak ada data request"))
+                            : ListView.builder(
+                                itemCount: _carpoolData.length,
+                                itemBuilder: (context, index) =>
+                                    _buildCarpoolCard(
+                                        _carpoolData[index], index),
+                              ),
                   ),
                 ),
               ),

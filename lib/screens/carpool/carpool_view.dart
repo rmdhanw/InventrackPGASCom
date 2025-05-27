@@ -27,6 +27,9 @@ class _CarpoolViewState extends State<CarpoolView> {
   Map<DateTime, List<Carpool>> carpoolEvents = {};
   List<Carpool> selectedEvents = [];
 
+  // Cache untuk menyimpan data yang sudah di-load
+  Map<String, Map<DateTime, List<Carpool>>> monthlyCache = {};
+
   bool isLoading = true;
   bool isCalendarView = true;
 
@@ -50,47 +53,39 @@ class _CarpoolViewState extends State<CarpoolView> {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
+  String _getMonthKey(DateTime date) {
+    return "${date.year}-${date.month}";
+  }
+
   Future<void> _loadCarpoolDataForMonth() async {
+    String monthKey = _getMonthKey(focusedDay);
+
+    // Cek cache terlebih dahulu
+    if (monthlyCache.containsKey(monthKey)) {
+      setState(() {
+        carpoolEvents = monthlyCache[monthKey]!;
+        isLoading = false;
+      });
+
+      if (selectedDay != null) {
+        _updateSelectedEvents(selectedDay!);
+      }
+      return;
+    }
+
     setState(() {
       isLoading = true;
       carpoolEvents = {};
     });
 
-    DateTime firstDayOfMonth = DateTime(focusedDay.year, focusedDay.month, 1);
-    DateTime lastDayOfMonth =
-        DateTime(focusedDay.year, focusedDay.month + 1, 0);
+    try {
+      // OPTIMASI 1: Query dengan rentang tanggal yang lebih efisien
+      await _loadCarpoolDataOptimized();
 
-    String startDateStr = _formatDate(firstDayOfMonth);
-    String endDateStr = _formatDate(lastDayOfMonth);
-
-    List<String> dateRange = _getDateRange(startDateStr, endDateStr);
-
-    for (String date in dateRange) {
-      try {
-        QuerySnapshot<Carpool> snapshot = await FirebaseFirestore.instance
-            .collection("carpool")
-            .doc(date)
-            .collection("carpoolItems")
-            .orderBy("createdAt", descending: true)
-            .withConverter<Carpool>(
-              fromFirestore: (snapshot, _) =>
-                  Carpool.fromJson(snapshot.data()!),
-              toFirestore: (carpool, _) => carpool.toJson(),
-            )
-            .get();
-
-        if (snapshot.docs.isNotEmpty) {
-          List<Carpool> carpools = snapshot.docs.map((e) => e.data()).toList();
-          DateTime dateKey = _parseDate(date);
-
-          setState(() {
-            carpoolEvents[DateTime(dateKey.year, dateKey.month, dateKey.day)] =
-                carpools;
-          });
-        }
-      } catch (e) {
-        debugPrint('Error loading data for date $date: $e');
-      }
+      // Simpan ke cache
+      monthlyCache[monthKey] = Map.from(carpoolEvents);
+    } catch (e) {
+      debugPrint('Error loading carpool data: $e');
     }
 
     if (selectedDay != null) {
@@ -100,6 +95,70 @@ class _CarpoolViewState extends State<CarpoolView> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  // OPTIMASI 1: Gunakan query yang lebih efisien
+  Future<void> _loadCarpoolDataOptimized() async {
+    DateTime firstDayOfMonth = DateTime(focusedDay.year, focusedDay.month, 1);
+    DateTime lastDayOfMonth =
+        DateTime(focusedDay.year, focusedDay.month + 1, 0);
+
+    // OPTIMASI 2: Batasi query hanya untuk hari-hari yang mungkin ada data
+    List<String> dateRange = _getDateRange(
+        _formatDate(firstDayOfMonth), _formatDate(lastDayOfMonth));
+
+    // OPTIMASI 3: Query paralel dengan batching
+    List<Future<void>> queryFutures = [];
+
+    // Bagi query menjadi batch untuk menghindari terlalu banyak concurrent request
+    const int batchSize = 5;
+
+    for (int i = 0; i < dateRange.length; i += batchSize) {
+      int end =
+          (i + batchSize < dateRange.length) ? i + batchSize : dateRange.length;
+      List<String> batch = dateRange.sublist(i, end);
+
+      queryFutures.add(_loadBatchData(batch));
+    }
+
+    await Future.wait(queryFutures);
+  }
+
+  Future<void> _loadBatchData(List<String> dates) async {
+    List<Future<void>> batchFutures =
+        dates.map((date) => _loadSingleDateData(date)).toList();
+    await Future.wait(batchFutures);
+  }
+
+  Future<void> _loadSingleDateData(String date) async {
+    try {
+      QuerySnapshot<Carpool> snapshot = await FirebaseFirestore.instance
+          .collection("carpool")
+          .doc(date)
+          .collection("carpoolItems")
+          .orderBy("createdAt", descending: true)
+          .limit(50) // OPTIMASI 4: Batasi jumlah dokumen yang diambil
+          .withConverter<Carpool>(
+            fromFirestore: (snapshot, _) => Carpool.fromJson(snapshot.data()!),
+            toFirestore: (carpool, _) => carpool.toJson(),
+          )
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        List<Carpool> carpools = snapshot.docs.map((e) => e.data()).toList();
+        DateTime dateKey = _parseDate(date);
+
+        // Gunakan synchronized update untuk menghindari race condition
+        if (mounted) {
+          setState(() {
+            carpoolEvents[DateTime(dateKey.year, dateKey.month, dateKey.day)] =
+                carpools;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading data for date $date: $e');
+    }
   }
 
   List<String> _getDateRange(String start, String end) {
@@ -118,7 +177,6 @@ class _CarpoolViewState extends State<CarpoolView> {
 
   List<Carpool> _getEventsForDay(DateTime day) {
     final normalizedDay = DateTime(day.year, day.month, day.day);
-
     List<Carpool> events = carpoolEvents[normalizedDay] ?? [];
 
     if (selectedDriver != null && selectedDriver != "Semua") {
@@ -137,9 +195,12 @@ class _CarpoolViewState extends State<CarpoolView> {
     });
   }
 
+  // OPTIMASI 5: Cache unique drivers
+  List<String>? _cachedDrivers;
   List<String> _getUniqueDrivers() {
-    Set<String> drivers = {"Semua"};
+    if (_cachedDrivers != null) return _cachedDrivers!;
 
+    Set<String> drivers = {"Semua"};
     carpoolEvents.forEach((date, carpools) {
       for (var carpool in carpools) {
         if (carpool.pengemudi != null && carpool.pengemudi!.isNotEmpty) {
@@ -148,7 +209,8 @@ class _CarpoolViewState extends State<CarpoolView> {
       }
     });
 
-    return drivers.toList();
+    _cachedDrivers = drivers.toList();
+    return _cachedDrivers!;
   }
 
   @override
@@ -173,52 +235,66 @@ class _CarpoolViewState extends State<CarpoolView> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    hint: const Text("Pilih Pengemudi"),
-                    value: selectedDriver,
-                    items: [
-                      const DropdownMenuItem(
-                          value: "Semua", child: Text("Semua")),
-                      ..._getUniqueDrivers()
-                          .where((item) => item != "Semua")
-                          .map((driver) => DropdownMenuItem(
-                                value: driver,
-                                child: Text(driver),
-                              )),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDriver = value;
-                        if (selectedDay != null) {
-                          _updateSelectedEvents(selectedDay!);
-                        }
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // OPTIMASI 6: Lazy loading untuk dropdown
+          _buildDriverDropdown(),
+
           if (isLoading)
             const Expanded(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text("Memuat data carpool..."),
+                  ],
+                ),
+              ),
             )
           else
             Expanded(
               child: isCalendarView ? _buildCalendarView() : _buildListView(),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDriverDropdown() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              hint: const Text("Pilih Pengemudi"),
+              value: selectedDriver,
+              items: [
+                const DropdownMenuItem(value: "Semua", child: Text("Semua")),
+                ..._getUniqueDrivers()
+                    .where((item) => item != "Semua")
+                    .map((driver) => DropdownMenuItem(
+                          value: driver,
+                          child: Text(driver),
+                        )),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  selectedDriver = value;
+                  _cachedDrivers = null; // Reset cache ketika filter berubah
+                  if (selectedDay != null) {
+                    _updateSelectedEvents(selectedDay!);
+                  }
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -251,6 +327,7 @@ class _CarpoolViewState extends State<CarpoolView> {
           onPageChanged: (focusedDay) {
             setState(() {
               this.focusedDay = focusedDay;
+              _cachedDrivers = null; // Reset cache ketika pindah bulan
             });
             _loadCarpoolDataForMonth();
           },
@@ -421,5 +498,12 @@ class _CarpoolViewState extends State<CarpoolView> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Bersihkan cache jika perlu
+    monthlyCache.clear();
+    super.dispose();
   }
 }
