@@ -43,10 +43,16 @@ class RequestCarpoolState extends State<RequestCarpool>
   late AnimationController _animController;
   late Animation<double> _fadeIn;
 
+  // Variables to store selected times for validation
+  TimeOfDay? _selectedDepartureTime;
+  TimeOfDay? _selectedReturnTime;
+  DateTime? _selectedDate;
+
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
+    _selectedDate = now;
     tanggalRequestController.text =
         "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
 
@@ -95,7 +101,7 @@ class RequestCarpoolState extends State<RequestCarpool>
         }
       }
 
-      if (userName != null) {
+      if (mounted && userName != null) {
         setState(() {
           namaPenggunaController.text = userName!;
         });
@@ -136,10 +142,21 @@ class RequestCarpoolState extends State<RequestCarpool>
   }
 
   Future<void> _selectTime24H(
-      BuildContext context, TextEditingController controller) async {
+      BuildContext context, TextEditingController controller,
+      {bool isDeparture = false}) async {
+    TimeOfDay initialTime = TimeOfDay.now();
+
+    // If selecting return time and departure time is already set, use departure time as minimum
+    if (!isDeparture && _selectedDepartureTime != null) {
+      // Set initial time to departure time + 1 hour as suggestion
+      final suggestedHour = (_selectedDepartureTime!.hour + 1) % 24;
+      initialTime = TimeOfDay(
+          hour: suggestedHour, minute: _selectedDepartureTime!.minute);
+    }
+
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: initialTime,
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
@@ -148,10 +165,49 @@ class RequestCarpoolState extends State<RequestCarpool>
       },
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
+      // Validate return time is not earlier than departure time
+      if (!isDeparture && _selectedDepartureTime != null) {
+        final departureMinutes =
+            _selectedDepartureTime!.hour * 60 + _selectedDepartureTime!.minute;
+        final returnMinutes = picked.hour * 60 + picked.minute;
+
+        if (returnMinutes <= departureMinutes) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Jam kembali harus lebih dari jam berangkat'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final formattedTime =
           '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-      controller.text = formattedTime;
+
+      setState(() {
+        controller.text = formattedTime;
+
+        if (isDeparture) {
+          _selectedDepartureTime = picked;
+          // Clear return time if departure time is changed and new departure is after current return
+          if (_selectedReturnTime != null) {
+            final newDepartureMinutes = picked.hour * 60 + picked.minute;
+            final currentReturnMinutes =
+                _selectedReturnTime!.hour * 60 + _selectedReturnTime!.minute;
+
+            if (newDepartureMinutes >= currentReturnMinutes) {
+              jamKembaliController.clear();
+              _selectedReturnTime = null;
+            }
+          }
+        } else {
+          _selectedReturnTime = picked;
+        }
+      });
     }
   }
 
@@ -159,16 +215,45 @@ class RequestCarpoolState extends State<RequestCarpool>
     final now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year - 5),
+      initialDate: _selectedDate ?? now,
+      firstDate: now, // Only today and future dates
       lastDate: DateTime(now.year + 5),
     );
 
-    if (picked != null) {
-      final formattedDate =
-          "${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}";
-      tanggalRequestController.text = formattedDate;
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedDate = picked;
+        final formattedDate =
+            "${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}";
+        tanggalRequestController.text = formattedDate;
+      });
     }
+  }
+
+  String? _validateReturnTime(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Tidak boleh kosong';
+    }
+
+    if (_selectedDepartureTime != null) {
+      try {
+        final returnTimeParts = value.split(':');
+        final returnHour = int.parse(returnTimeParts[0]);
+        final returnMinute = int.parse(returnTimeParts[1]);
+
+        final departureMinutes =
+            _selectedDepartureTime!.hour * 60 + _selectedDepartureTime!.minute;
+        final returnMinutes = returnHour * 60 + returnMinute;
+
+        if (returnMinutes <= departureMinutes) {
+          return 'Jam kembali harus lebih dari jam berangkat';
+        }
+      } catch (e) {
+        return 'Format waktu tidak valid';
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -245,13 +330,16 @@ class RequestCarpoolState extends State<RequestCarpool>
                               'Jam Berangkat',
                               jamBerangkatController,
                               onTap: () => _selectTime24H(
-                                  context, jamBerangkatController),
+                                  context, jamBerangkatController,
+                                  isDeparture: true),
                             ),
-                            _buildTextField(
+                            _buildTextFieldWithCustomValidator(
                               'Jam Kembali',
                               jamKembaliController,
-                              onTap: () =>
-                                  _selectTime24H(context, jamKembaliController),
+                              validator: _validateReturnTime,
+                              onTap: () => _selectTime24H(
+                                  context, jamKembaliController,
+                                  isDeparture: false),
                             ),
                             _buildTextField(
                               'Tanggal Request',
@@ -324,6 +412,34 @@ class RequestCarpoolState extends State<RequestCarpool>
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         validator: (value) =>
             (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null,
+        onTap: onTap,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.blue[100],
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextFieldWithCustomValidator(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+    VoidCallback? onTap,
+    bool readOnly = false,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: TextFormField(
+        controller: controller,
+        readOnly: onTap != null || readOnly,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        validator: validator ??
+            ((value) =>
+                (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null),
         onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
