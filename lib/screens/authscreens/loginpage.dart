@@ -24,8 +24,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -40,19 +38,28 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         },
-        child: Container(
-          width: double.infinity,
-          height: size.height,
-          decoration: const BoxDecoration(color: Colors.blue),
-          child: Center(
-            child: SingleChildScrollView(
-              child: LoginCard(
-                formKey: _formKey,
-                emailController: email,
-                passwordController: password,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isTabletOrLarger = constraints.maxWidth >= 600;
+
+            return Container(
+              width: double.infinity,
+              height: constraints.maxHeight,
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: LoginCard(
+                    formKey: _formKey,
+                    emailController: email,
+                    passwordController: password,
+                    isTabletOrLarger: isTabletOrLarger,
+                    maxWidth: constraints.maxWidth,
+                    maxHeight: constraints.maxHeight,
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -63,25 +70,67 @@ class LoginCard extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final bool isTabletOrLarger;
+  final double maxWidth;
+  final double maxHeight;
 
   const LoginCard({
     super.key,
     required this.formKey,
     required this.emailController,
     required this.passwordController,
+    required this.isTabletOrLarger,
+    required this.maxWidth,
+    required this.maxHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final containerWidth = size.width > 600 ? 400.0 : size.width * 0.8;
+    double containerWidth;
+    double horizontalPadding;
+    double borderRadius;
+    double spacing;
+    double logoSize;
+    double buttonPadding;
+    double fontSize;
+    if (maxWidth > 1200) {
+      containerWidth = 500;
+      horizontalPadding = 40;
+      borderRadius = 20;
+      spacing = 24;
+      logoSize = 180;
+      buttonPadding = 40;
+      fontSize = 32;
+    } else if (maxWidth >= 600) {
+      containerWidth = maxWidth * 0.6;
+      horizontalPadding = 30;
+      borderRadius = 16;
+      spacing = 20;
+      logoSize = maxWidth * 0.25;
+      buttonPadding = 30;
+      fontSize = 28;
+    } else {
+      containerWidth = maxWidth * 0.85;
+      horizontalPadding = 20;
+      borderRadius = 15;
+      spacing = 16;
+      logoSize = maxWidth * 0.4;
+      buttonPadding = 20;
+      fontSize = 24;
+    }
+    logoSize = logoSize.clamp(80, 200);
+    final buttonWidth =
+        (maxWidth < 360) ? containerWidth * 0.7 : containerWidth * 0.5;
 
     return Container(
       width: containerWidth,
-      padding: EdgeInsets.all(size.width * 0.05),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: horizontalPadding * 0.8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(size.width * 0.05),
+        borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -93,22 +142,25 @@ class LoginCard extends StatelessWidget {
       child: Form(
         key: formKey,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: size.height * 0.02),
-            const Text(
+            SizedBox(height: spacing),
+            Text(
               "LOGIN",
               style: TextStyle(
-                fontSize: 30,
+                fontSize: fontSize,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(199, 3, 40, 80),
+                color: const Color.fromARGB(199, 3, 40, 80),
               ),
             ),
+            SizedBox(height: spacing),
             Image.asset(
               'images/logoinventrack.png',
-              width: size.width * 0.5,
-              height: size.width * 0.5,
+              width: logoSize,
+              height: logoSize,
+              fit: BoxFit.contain,
             ),
-            SizedBox(height: size.height * 0.02),
+            SizedBox(height: spacing),
             _buildTextFormField(
               hintText: 'Email',
               icon: Icons.person,
@@ -122,7 +174,7 @@ class LoginCard extends StatelessWidget {
                 return null;
               },
             ),
-            SizedBox(height: size.height * 0.02),
+            SizedBox(height: spacing * 0.8),
             _buildTextFormField(
               hintText: 'Password',
               icon: Icons.lock,
@@ -137,49 +189,51 @@ class LoginCard extends StatelessWidget {
                 return null;
               },
             ),
-            SizedBox(height: size.height * 0.025),
+            SizedBox(height: spacing),
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, state) {
-                return ElevatedButton(
-                  onPressed: (state is AuthStateLoading)
-                      ? null
-                      : () {
-                          if (formKey.currentState!.validate()) {
-                            context.read<AuthBloc>().add(
-                                  AuthEventLogin(
-                                    emailController.text.trim(),
-                                    passwordController.text.trim(),
-                                  ),
-                                );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: size.width * 0.2,
-                      vertical: size.height * 0.015,
+                return SizedBox(
+                  width: buttonWidth,
+                  child: ElevatedButton(
+                    onPressed: (state is AuthStateLoading)
+                        ? null
+                        : () {
+                            if (formKey.currentState!.validate()) {
+                              context.read<AuthBloc>().add(
+                                    AuthEventLogin(
+                                      emailController.text.trim(),
+                                      passwordController.text.trim(),
+                                    ),
+                                  );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: EdgeInsets.symmetric(
+                        vertical: buttonPadding * 0.4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(borderRadius * 0.8),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(size.width * 0.04),
-                    ),
-                  ),
-                  child: (state is AuthStateLoading)
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                    child: (state is AuthStateLoading)
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: maxWidth < 360 ? 1.5 : 2,
+                            ),
+                          )
+                        : const Text(
+                            "LOGIN",
+                            style: TextStyle(color: Colors.white),
                           ),
-                        )
-                      : const Text(
-                          "LOGIN",
-                          style: TextStyle(color: Colors.white),
-                        ),
+                  ),
                 );
               },
             ),
-            SizedBox(height: size.height * 0.02),
+            SizedBox(height: spacing),
           ],
         ),
       ),
@@ -194,17 +248,30 @@ class LoginCard extends StatelessWidget {
     required String? Function(String?) validator,
     bool obscureText = false,
   }) {
+    final inputBorderRadius = maxWidth < 360 ? 15.0 : 20.0;
+    final iconSize = maxWidth < 360 ? 18.0 : 24.0;
+    final fontSize = maxWidth < 360 ? 14.0 : 16.0;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       autocorrect: false,
       validator: validator,
+      style: TextStyle(fontSize: fontSize),
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: Icon(icon),
+        hintStyle: TextStyle(fontSize: fontSize),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: maxWidth < 360 ? 12 : 16,
+          horizontal: maxWidth < 360 ? 8 : 12,
+        ),
+        prefixIcon: Icon(
+          icon,
+          size: iconSize,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(inputBorderRadius),
         ),
       ),
     );

@@ -148,7 +148,7 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
 
             if (authState is AuthStateAuthenticated) {
               final role = authState.handle.toLowerCase();
-              hasAccess = role != 'user' || role != 'admin';
+              hasAccess = role != 'user' && role != 'admin';
             }
 
             if (hasAccess) {
@@ -329,7 +329,7 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: "Cari berdasarkan nama barang atau nomor serial...",
+          hintText: "Cari Nama Barang/Nomor Serial",
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
