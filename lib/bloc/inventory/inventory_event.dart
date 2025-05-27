@@ -13,15 +13,22 @@ class AddInventoryItem extends InventoryEvent {
   final String kategori;
   final String nomorSerial;
   final String namaBarang;
+  final String keterangan;
+  final String status;
+  final String kondisi;
 
   const AddInventoryItem({
+    required this.keterangan,
+    required this.status,
+    required this.kondisi,
     required this.kategori,
     required this.nomorSerial,
     required this.namaBarang,
   });
 
   @override
-  List<Object> get props => [kategori, nomorSerial, namaBarang];
+  List<Object> get props =>
+      [kategori, nomorSerial, namaBarang, keterangan, status, kondisi];
 }
 
 class AddTransaction extends InventoryEvent {

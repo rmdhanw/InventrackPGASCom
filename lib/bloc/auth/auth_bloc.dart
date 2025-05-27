@@ -14,7 +14,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthEventLogin>(_onLogin);
     on<AuthEventSignUp>(_onSignUp);
     on<AuthEventLogout>(_onLogout);
-    on<AuthEventResetPassword>(_onResetPassword);
   }
 
   Future<void> _onLogin(AuthEventLogin event, Emitter<AuthState> emit) async {
@@ -91,57 +90,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       action: () async {
         await _auth.signOut();
         emit(AuthStateLogout());
-      },
-    );
-  }
-
-  Future<void> _onResetPassword(
-      AuthEventResetPassword event, Emitter<AuthState> emit) async {
-    await _authMethods(
-      emit: emit,
-      action: () async {
-        // 1. Periksa apakah email terdaftar di Firebase Auth
-        final List<String> signInMethods =
-            await _auth.fetchSignInMethodsForEmail(event.email);
-
-        if (signInMethods.isEmpty) {
-          throw Exception("Email tidak terdaftar.");
-        }
-
-        // 2. Cari user di Firestore berdasarkan email untuk memastikan data ada
-        final QuerySnapshot snapshot = await _firestore
-            .collectionGroup("users")
-            .where("email", isEqualTo: event.email)
-            .get();
-
-        if (snapshot.docs.isEmpty) {
-          throw Exception("Data user tidak ditemukan di Firestore.");
-        }
-
-        // 3. Dapatkan UID dari dokumen Firestore
-        snapshot.docs.first.get('uid');
-
-        // 4. Reset password dengan metode Firebase Auth
-        // Untuk melakukan reset langsung tanpa email verifikasi,
-        // kita perlu melakukan sign in dengan custom token atau menggunakan admin SDK
-        // Pada contoh ini, kita gunakan metode email+password sederhana
-
-        try {
-          // Gunakan Firebase Admin SDK untuk reset password (dalam contoh ini simulasikan)
-          // Dalam implementasi sebenarnya, ini harus dilakukan di backend dengan Admin SDK
-          // Catatan: Ini hanya simulasi dan tidak akan bekerja dalam aplikasi nyata
-
-          // Karena keterbatasan Flutter/Firebase untuk reset langsung,
-          // solusi terbaik pada aplikasi nyata adalah:
-          // 1. Kirim kode verifikasi ke email
-          // 2. Verifikasi kode
-          // 3. Lalu update password
-
-          // Simulasi reset password berhasil
-          emit(AuthStatePasswordReset());
-        } catch (e) {
-          throw Exception("Gagal mereset password: ${e.toString()}");
-        }
       },
     );
   }

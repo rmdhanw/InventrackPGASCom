@@ -11,6 +11,16 @@ part 'inventory_state.dart';
 class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
   final FirebaseFirestore _firestore;
 
+  // Cache untuk kategori agar tidak perlu fetch berulang kali
+  List<String>? _cachedCategories;
+
+  // Constants untuk collection paths
+  static const String _inventoryDataPath = 'inventory/data/items';
+  static const String _inventoryTransactionPath = 'inventory/transaction/items';
+
+  // Date formatter sebagai static untuk reusability
+  static final DateFormat _dateFormatter = DateFormat('dd-MM-yyyy');
+
   InventoryBloc({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         super(InventoryInitial()) {
@@ -24,26 +34,38 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     on<InventoryEventEditTransaction>(_onEditTransaction);
   }
 
+  // Helper method untuk mendapatkan tanggal hari ini
+  String get _todayFormatted => _dateFormatter.format(DateTime.now());
+
+  // Helper method untuk mendapatkan collection reference
+  CollectionReference<Map<String, dynamic>> get _itemsCollection =>
+      _firestore.collection(_inventoryDataPath);
+
+  CollectionReference<Map<String, dynamic>> get _transactionsCollection =>
+      _firestore.collection(_inventoryTransactionPath);
+
   Future<void> _onLoadCategories(
       LoadCategories event, Emitter<InventoryState> emit) async {
+    // Jika sudah ada cache, gunakan cache
+    if (_cachedCategories != null) {
+      emit(InventoryLoaded(categories: _cachedCategories!));
+      return;
+    }
+
     emit(InventoryLoading());
     try {
-      final snapshot = await _firestore
-          .collection("inventory")
-          .doc("data")
-          .collection("items")
-          .get();
+      final snapshot = await _itemsCollection.get();
 
       final Set<String> uniqueCategories = {};
       for (var doc in snapshot.docs) {
-        if (doc.data().containsKey('kategori')) {
-          uniqueCategories.add(doc['kategori'] as String);
+        final data = doc.data();
+        if (data.containsKey('kategori') && data['kategori'] != null) {
+          uniqueCategories.add(data['kategori'] as String);
         }
       }
 
-      final List<String> kategoriList = uniqueCategories.toList()..sort();
-
-      emit(InventoryLoaded(categories: kategoriList));
+      _cachedCategories = uniqueCategories.toList()..sort();
+      emit(InventoryLoaded(categories: _cachedCategories!));
     } catch (e) {
       emit(InventoryError('Gagal memuat kategori: $e'));
     }
@@ -52,24 +74,42 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
   Future<void> _onAddInventoryItem(
       AddInventoryItem event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
+
+    // Gunakan batch write untuk operasi atomik
+    final batch = _firestore.batch();
+
     try {
-      final tanggalFormatted = DateFormat('dd-MM-yyyy').format(DateTime.now());
-
-      final docRef = _firestore
-          .collection('inventory')
-          .doc('data')
-          .collection('items')
-          .doc(event.nomorSerial);
-
-      await docRef.set({
+      // Tambah item ke koleksi data
+      final itemRef = _itemsCollection.doc(event.nomorSerial);
+      batch.set(itemRef, {
         'kategori': event.kategori,
         'namaBarang': event.namaBarang,
         'nomorSerial': event.nomorSerial,
-        'tanggal': tanggalFormatted,
+        'tanggal': _todayFormatted,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      add(LoadCategories());
+      // Tambah transaksi
+      final transactionRef = _transactionsCollection.doc();
+      batch.set(transactionRef, {
+        'id': transactionRef.id,
+        'nomorSerial': event.nomorSerial,
+        'kategori': event.kategori,
+        'namaBarang': event.namaBarang,
+        'status': event.status,
+        'kondisi': event.kondisi,
+        'keterangan': event.keterangan,
+        'tanggal': _todayFormatted,
+      });
+
+      await batch.commit();
+
+      // Update cache kategori jika kategori baru
+      if (_cachedCategories != null &&
+          !_cachedCategories!.contains(event.kategori)) {
+        _cachedCategories!.add(event.kategori);
+        _cachedCategories!.sort();
+      }
 
       emit(InventorySuccess('Item berhasil ditambahkan'));
     } catch (e) {
@@ -80,41 +120,38 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
   Future<void> _onEditInventory(
       InventoryEventEditInventory event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
+
+    final batch = _firestore.batch();
+
     try {
       if (event.nomorSerialOld != event.nomorSerial) {
-        await _firestore
-            .collection('inventory')
-            .doc('data')
-            .collection('items')
-            .doc(event.nomorSerial)
-            .set({
+        // Hapus dokumen lama dan buat dokumen baru
+        final oldRef = _itemsCollection.doc(event.nomorSerialOld);
+        final newRef = _itemsCollection.doc(event.nomorSerial);
+
+        batch.delete(oldRef);
+        batch.set(newRef, {
           'kategori': event.kategori,
           'namaBarang': event.namaBarang,
           'nomorSerial': event.nomorSerial,
           'tanggal': event.tanggal,
           'timestamp': FieldValue.serverTimestamp(),
         });
-
-        await _firestore
-            .collection('inventory')
-            .doc('data')
-            .collection('items')
-            .doc(event.nomorSerialOld)
-            .delete();
       } else {
-        await _firestore
-            .collection('inventory')
-            .doc('data')
-            .collection('items')
-            .doc(event.nomorSerial)
-            .update({
+        // Update dokumen existing
+        final ref = _itemsCollection.doc(event.nomorSerial);
+        batch.update(ref, {
           'kategori': event.kategori,
           'namaBarang': event.namaBarang,
-          'nomorSerial': event.nomorSerial,
           'tanggal': event.tanggal,
           'timestamp': FieldValue.serverTimestamp(),
         });
       }
+
+      await batch.commit();
+
+      // Update cache kategori jika perlu
+      _updateCategoryCache(event.kategori);
 
       emit(InventoryStateCompleteEdit('Data berhasil diperbarui'));
     } catch (e) {
@@ -127,24 +164,18 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     emit(InventoryLoading());
 
     try {
-      final now = DateTime.now();
-      final formattedDate =
-          "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
-      final docRef = await _firestore
-          .collection('inventory')
-          .doc('transaction')
-          .collection('items')
-          .add({
+      final docRef = _transactionsCollection.doc();
+
+      await docRef.set({
+        'id': docRef.id,
         'nomorSerial': event.nomorSerial,
         'kategori': event.kategori,
         'namaBarang': event.namaBarang,
         'status': event.status,
         'kondisi': event.kondisi,
         'keterangan': event.keterangan,
-        'tanggal': formattedDate,
+        'tanggal': _todayFormatted,
       });
-
-      await docRef.update({"id": docRef.id});
 
       emit(InventorySuccess('Transaksi berhasil ditambahkan'));
     } catch (e) {
@@ -156,13 +187,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       DeleteInventoryItem event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      await _firestore
-          .collection('inventory')
-          .doc('data')
-          .collection('items')
-          .doc(event.nomorSerial)
-          .delete();
-
+      await _itemsCollection.doc(event.nomorSerial).delete();
       emit(InventorySuccess('Item berhasil dihapus'));
     } catch (e) {
       emit(InventoryError('Gagal menghapus item: $e'));
@@ -173,12 +198,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       InventoryEventEditTransaction event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      await _firestore
-          .collection('inventory')
-          .doc('transaction')
-          .collection('items')
-          .doc(event.id)
-          .update({
+      await _transactionsCollection.doc(event.id).update({
         'nomorSerial': event.nomorSerial,
         'kategori': event.kategori,
         'namaBarang': event.namaBarang,
@@ -198,13 +218,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      await _firestore
-          .collection('inventory')
-          .doc('transaction')
-          .collection('items')
-          .doc(event.id)
-          .delete();
-
+      await _transactionsCollection.doc(event.id).delete();
       emit(InventorySuccess('Data transaksi berhasil dihapus'));
     } catch (e) {
       emit(InventoryError('Gagal menghapus transaksi: $e'));
@@ -215,12 +229,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       LoadItemBySerial event, Emitter<InventoryState> emit) async {
     emit(InventoryLoading());
     try {
-      final doc = await _firestore
-          .collection('inventory')
-          .doc('data')
-          .collection('items')
-          .doc(event.serialNumber)
-          .get();
+      final doc = await _itemsCollection.doc(event.serialNumber).get();
 
       if (doc.exists) {
         final data = doc.data()!;
@@ -236,74 +245,89 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
     }
   }
 
+  // Stream dengan filter yang sesuai dengan view
   Stream<List<Inventory>> streamInventoryTransactions({
     required String startDate,
     required String endDate,
     String? status,
     String? category,
   }) async* {
-    DateTime start = DateFormat('dd-MM-yyyy').parse(startDate);
-    DateTime end = DateFormat('dd-MM-yyyy').parse(endDate);
+    try {
+      final start = _dateFormatter.parse(startDate);
+      final end = _dateFormatter.parse(endDate);
 
-    end = end.add(const Duration(days: 1));
+      // Gunakan query dasar tanpa filter kompleks untuk menghindari composite index
+      Query<Map<String, dynamic>> query = _transactionsCollection
+          .where("tanggal", isGreaterThanOrEqualTo: startDate)
+          .where("tanggal", isLessThanOrEqualTo: endDate)
+          .orderBy("tanggal", descending: true);
 
-    Query<Map<String, dynamic>> query = _firestore
-        .collection("inventory")
-        .doc("transaction")
-        .collection("items")
-        .where("tanggal", isGreaterThanOrEqualTo: startDate)
-        .where("tanggal", isLessThanOrEqualTo: endDate)
-        .orderBy("tanggal", descending: true);
+      await for (final snapshot in query.snapshots()) {
+        final transactions = <Inventory>[];
 
-    await for (QuerySnapshot<Map<String, dynamic>> snapshot
-        in query.snapshots()) {
-      try {
-        List<Inventory> transactions = [];
-
-        for (var doc in snapshot.docs) {
-          final Map<String, dynamic> data = doc.data();
-          final Inventory transaction = Inventory.fromJson(data);
-
-          DateTime? docDate;
+        for (final doc in snapshot.docs) {
           try {
-            if (transaction.tanggal != null) {
-              docDate = DateFormat('dd-MM-yyyy').parse(transaction.tanggal!);
+            final data = doc.data();
+            final transaction = Inventory.fromJson(data);
+
+            // Validasi tanggal
+            DateTime? docDate;
+            try {
+              if (transaction.tanggal != null) {
+                docDate = _dateFormatter.parse(transaction.tanggal!);
+              }
+            } catch (e) {
+              debugPrint('Error parsing date: ${transaction.tanggal}');
             }
+
+            if (docDate == null ||
+                docDate.isBefore(start) ||
+                docDate.isAfter(end.add(const Duration(days: 1)))) {
+              continue;
+            }
+
+            // Filter status - sesuaikan dengan logika di view
+            if (status != null && status != 'Semua Status') {
+              if (transaction.status?.toLowerCase() != status.toLowerCase()) {
+                continue;
+              }
+            }
+
+            // Filter category - sesuaikan dengan logika di view
+            if (category != null && category != 'Semua Kategori') {
+              if (transaction.kategori?.toLowerCase() !=
+                  category.toLowerCase()) {
+                continue;
+              }
+            }
+
+            transactions.add(transaction);
           } catch (e) {
-            debugPrint('Error parsing date: ${transaction.tanggal}');
+            debugPrint('Error parsing transaction: ${doc.id} - $e');
           }
-
-          if (docDate == null ||
-              docDate.isBefore(start) ||
-              docDate.isAfter(end)) {
-            continue;
-          }
-
-          if (status != null &&
-              status != 'Semua' &&
-              transaction.status?.toLowerCase() != status.toLowerCase()) {
-            continue;
-          }
-
-          if (category != null &&
-              category != 'Semua' &&
-              transaction.kategori?.toLowerCase() != category.toLowerCase()) {
-            continue;
-          }
-
-          transactions.add(transaction);
         }
 
         yield transactions;
-      } catch (e) {
-        debugPrint('Error processing inventory transactions: $e');
-        yield [];
       }
+    } catch (e) {
+      debugPrint('Error in streamInventoryTransactions: $e');
+      yield [];
     }
   }
 
-  String getTodayDateFormatted() {
-    final now = DateTime.now();
-    return "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
+  // Helper method untuk update cache kategori
+  void _updateCategoryCache(String newCategory) {
+    if (_cachedCategories != null &&
+        !_cachedCategories!.contains(newCategory)) {
+      _cachedCategories!.add(newCategory);
+      _cachedCategories!.sort();
+    }
   }
+
+  // Method untuk clear cache (misalnya saat logout)
+  void clearCache() {
+    _cachedCategories = null;
+  }
+
+  String getTodayDateFormatted() => _todayFormatted;
 }

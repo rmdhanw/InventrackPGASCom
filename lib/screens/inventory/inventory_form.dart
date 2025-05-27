@@ -14,10 +14,17 @@ class _InventoryFormState extends State<InventoryForm> {
   final nomorSerialController = TextEditingController();
   final namaBarangController = TextEditingController();
   final customKategoriController = TextEditingController();
+  final keteranganController = TextEditingController();
 
   String? _selectedKategori;
+  String? _selectedStatusBarang;
+  String? _selectedKondisiBarang;
   bool _showCustomKategoriField = false;
   List<String> _categories = [];
+
+  // Daftar pilihan untuk dropdown baru
+  final List<String> _statusBarangOptions = ['Masuk', 'Keluar'];
+  final List<String> _kondisiBarangOptions = ['Baik', 'Underperform', 'Buruk'];
 
   @override
   void initState() {
@@ -30,6 +37,7 @@ class _InventoryFormState extends State<InventoryForm> {
     nomorSerialController.dispose();
     namaBarangController.dispose();
     customKategoriController.dispose();
+    keteranganController.dispose();
     super.dispose();
   }
 
@@ -44,6 +52,9 @@ class _InventoryFormState extends State<InventoryForm> {
           kategori: kategori,
           nomorSerial: nomorSerialController.text.trim(),
           namaBarang: namaBarangController.text.trim(),
+          status: _selectedStatusBarang ?? '',
+          kondisi: _selectedKondisiBarang ?? '',
+          keterangan: keteranganController.text.trim(),
         ));
   }
 
@@ -116,6 +127,28 @@ class _InventoryFormState extends State<InventoryForm> {
                           'Kategori Lainnya', customKategoriController),
                     _buildTextField('Nomor Serial', nomorSerialController),
                     _buildTextField('Nama Barang', namaBarangController),
+                    _buildDropdown(
+                      label: 'Status Barang',
+                      value: _selectedStatusBarang,
+                      items: _statusBarangOptions,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedStatusBarang = value;
+                        });
+                      },
+                    ),
+                    _buildDropdown(
+                      label: 'Kondisi Barang',
+                      value: _selectedKondisiBarang,
+                      items: _kondisiBarangOptions,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedKondisiBarang = value;
+                        });
+                      },
+                    ),
+                    _buildTextField('Keterangan', keteranganController,
+                        required: false),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -141,19 +174,48 @@ class _InventoryFormState extends State<InventoryForm> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller,
+      {bool required = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: TextFormField(
         controller: controller,
-        validator: (value) =>
-            (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null,
+        validator: required
+            ? (value) =>
+                (value == null || value.isEmpty) ? 'Tidak boleh kosong' : null
+            : null,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
+        maxLines: label == 'Keterangan' ? 3 : 1,
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.blue[100],
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        value: value,
+        items: items
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+            .toList(),
+        onChanged: onChanged,
+        validator: (value) => value == null ? 'Pilih $label' : null,
       ),
     );
   }
