@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:inventrack/bloc/inventory/inventory_bloc.dart';
 
 class InventoryForm extends StatefulWidget {
@@ -11,60 +12,84 @@ class InventoryForm extends StatefulWidget {
 
 class _InventoryFormState extends State<InventoryForm> {
   final _formKey = GlobalKey<FormState>();
-  final nomorSerialController = TextEditingController();
-  final namaBarangController = TextEditingController();
-  final customKategoriController = TextEditingController();
-  final keteranganController = TextEditingController();
-
-  String? _selectedKategori;
-  String? _selectedStatusBarang;
-  String? _selectedKondisiBarang;
-  bool _showCustomKategoriField = false;
+  int _itemCount = 1;
+  List<ItemFormData> _items = [];
   List<String> _categories = [];
+  bool _isInitialized = false;
 
-  // Daftar pilihan untuk dropdown baru
+  // Daftar pilihan untuk dropdown
   final List<String> _statusBarangOptions = ['Masuk', 'Keluar'];
   final List<String> _kondisiBarangOptions = ['Baik', 'Underperform', 'Buruk'];
 
   @override
   void initState() {
     super.initState();
-    context.read<InventoryBloc>().add(LoadCategories());
+    // Jangan akses context di sini untuk GoRouter
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_isInitialized) {
+      // Ambil quantity dari parameter URL
+      final uri = GoRouterState.of(context).uri;
+      final quantityParam = uri.queryParameters['quantity'];
+      if (quantityParam != null) {
+        _itemCount = int.tryParse(quantityParam) ?? 1;
+      }
+
+      _initializeItems();
+      context.read<InventoryBloc>().add(LoadCategories());
+      _isInitialized = true;
+    }
+  }
+
+  void _initializeItems() {
+    _items = List.generate(_itemCount, (index) => ItemFormData());
   }
 
   @override
   void dispose() {
-    nomorSerialController.dispose();
-    namaBarangController.dispose();
-    customKategoriController.dispose();
-    keteranganController.dispose();
+    for (var item in _items) {
+      item.dispose();
+    }
     super.dispose();
   }
 
   void _submitForm() {
     if (!_formKey.currentState!.validate()) return;
 
-    final kategori = _showCustomKategoriField
-        ? customKategoriController.text.trim()
-        : _selectedKategori ?? '';
+    // Validasi bahwa semua item memiliki data yang diperlukan
+    for (int i = 0; i < _items.length; i++) {
+      final item = _items[i];
+      if (item.nomorSerialController.text.trim().isEmpty ||
+          item.namaBarangController.text.trim().isEmpty ||
+          item.selectedKategori == null ||
+          item.selectedStatusBarang == null ||
+          item.selectedKondisiBarang == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lengkapi semua data pada item ${i + 1}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
 
-    context.read<InventoryBloc>().add(AddInventoryItem(
-          kategori: kategori,
-          nomorSerial: nomorSerialController.text.trim(),
-          namaBarang: namaBarangController.text.trim(),
-          status: _selectedStatusBarang ?? '',
-          kondisi: _selectedKondisiBarang ?? '',
-          keterangan: keteranganController.text.trim(),
-        ));
+    // Submit semua items
+    context.read<InventoryBloc>().add(AddMultipleInventoryItems(items: _items));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'INPUT INVENTARIS',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          'INPUT INVENTARIS ($_itemCount Item${_itemCount > 1 ? 's' : ''})',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.blue,
@@ -83,7 +108,10 @@ class _InventoryFormState extends State<InventoryForm> {
             Navigator.pop(context);
           } else if (state is InventoryError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
@@ -115,53 +143,62 @@ class _InventoryFormState extends State<InventoryForm> {
               ),
               child: Form(
                 key: _formKey,
-                child: ListView(
+                child: Column(
                   children: [
-                    const SizedBox(height: 10),
-                    _buildDropdownKategori(
-                      label: 'Kategori Barang',
-                      items: _categories,
-                    ),
-                    if (_showCustomKategoriField)
-                      _buildTextField(
-                          'Kategori Lainnya', customKategoriController),
-                    _buildTextField('Nomor Serial', nomorSerialController),
-                    _buildTextField('Nama Barang', namaBarangController),
-                    _buildDropdown(
-                      label: 'Status Barang',
-                      value: _selectedStatusBarang,
-                      items: _statusBarangOptions,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedStatusBarang = value;
-                        });
-                      },
-                    ),
-                    _buildDropdown(
-                      label: 'Kondisi Barang',
-                      value: _selectedKondisiBarang,
-                      items: _kondisiBarangOptions,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedKondisiBarang = value;
-                        });
-                      },
-                    ),
-                    _buildTextField('Keterangan', keteranganController,
-                        required: false),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[100],
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                    // Header dengan jumlah items
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.blue[200]!),
                       ),
-                      onPressed: _submitForm,
-                      child: const Text(
-                        'Submit',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[800]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Anda akan menginput $_itemCount item barang',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Form items
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _items.length,
+                        itemBuilder: (context, index) {
+                          return _buildItemForm(index);
+                        },
+                      ),
+                    ),
+
+                    // Submit button
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[100],
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                         ),
+                        onPressed:
+                            state is InventoryLoading ? null : _submitForm,
+                        child: state is InventoryLoading
+                            ? const CircularProgressIndicator()
+                            : Text(
+                                'Submit Semua Data ($_itemCount Items)',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -170,6 +207,75 @@ class _InventoryFormState extends State<InventoryForm> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildItemForm(int index) {
+    final item = _items[index];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blue[300]!),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.blue[25],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header item
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.blue[600],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'Item ${index + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Form fields
+          _buildDropdownKategori(
+            label: 'Kategori Barang',
+            items: _categories,
+            item: item,
+          ),
+          if (item.showCustomKategoriField)
+            _buildTextField('Kategori Lainnya', item.customKategoriController),
+          _buildTextField('Nomor Serial', item.nomorSerialController),
+          _buildTextField('Nama Barang', item.namaBarangController),
+          _buildDropdown(
+            label: 'Status Barang',
+            value: item.selectedStatusBarang,
+            items: _statusBarangOptions,
+            onChanged: (value) {
+              setState(() {
+                item.selectedStatusBarang = value;
+              });
+            },
+          ),
+          _buildDropdown(
+            label: 'Kondisi Barang',
+            value: item.selectedKondisiBarang,
+            items: _kondisiBarangOptions,
+            onChanged: (value) {
+              setState(() {
+                item.selectedKondisiBarang = value;
+              });
+            },
+          ),
+          _buildTextField('Keterangan', item.keteranganController,
+              required: false),
+        ],
       ),
     );
   }
@@ -223,6 +329,7 @@ class _InventoryFormState extends State<InventoryForm> {
   Widget _buildDropdownKategori({
     required String label,
     required List<String> items,
+    required ItemFormData item,
   }) {
     final extendedItems = [...items, 'Lainnya'];
 
@@ -235,7 +342,7 @@ class _InventoryFormState extends State<InventoryForm> {
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: _selectedKategori,
+        value: item.selectedKategori,
         items: extendedItems.isEmpty
             ? [const DropdownMenuItem(value: 'Lainnya', child: Text('Lainnya'))]
             : extendedItems
@@ -243,12 +350,39 @@ class _InventoryFormState extends State<InventoryForm> {
                 .toList(),
         onChanged: (value) {
           setState(() {
-            _selectedKategori = value;
-            _showCustomKategoriField = value == 'Lainnya';
+            item.selectedKategori = value;
+            item.showCustomKategoriField = value == 'Lainnya';
           });
         },
         validator: (value) => value == null ? 'Pilih $label' : null,
       ),
     );
+  }
+}
+
+// Class untuk menyimpan data setiap item
+class ItemFormData {
+  final TextEditingController nomorSerialController = TextEditingController();
+  final TextEditingController namaBarangController = TextEditingController();
+  final TextEditingController customKategoriController =
+      TextEditingController();
+  final TextEditingController keteranganController = TextEditingController();
+
+  String? selectedKategori;
+  String? selectedStatusBarang;
+  String? selectedKondisiBarang;
+  bool showCustomKategoriField = false;
+
+  void dispose() {
+    nomorSerialController.dispose();
+    namaBarangController.dispose();
+    customKategoriController.dispose();
+    keteranganController.dispose();
+  }
+
+  String getKategori() {
+    return showCustomKategoriField
+        ? customKategoriController.text.trim()
+        : selectedKategori ?? '';
   }
 }

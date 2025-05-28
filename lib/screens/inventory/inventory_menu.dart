@@ -64,6 +64,7 @@ class InventoryMenu extends StatelessWidget {
                             icon: menu['icon'],
                             title: menu['title'],
                             routeName: menu['route'],
+                            onTap: () => _handleMenuTap(context, menu),
                           );
                         },
                       );
@@ -73,6 +74,124 @@ class InventoryMenu extends StatelessWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _handleMenuTap(BuildContext context, Map<String, dynamic> menu) {
+    if (menu['title'] == "Input Data Barang") {
+      _showQuantityDialog(context, isTransaction: false);
+    } else if (menu['title'] == "Input Transaksi Barang") {
+      _showQuantityDialog(context, isTransaction: true);
+    } else {
+      context.goNamed(menu['route']);
+    }
+  }
+
+  void _showQuantityDialog(BuildContext context,
+      {required bool isTransaction}) {
+    final TextEditingController quantityController = TextEditingController();
+    final String dialogTitle =
+        isTransaction ? 'Input Jumlah Transaksi' : 'Input Jumlah Data';
+    final String dialogContent = isTransaction
+        ? 'Masukkan jumlah transaksi barang yang ingin diinputkan:'
+        : 'Masukkan jumlah data barang yang ingin diinputkan:';
+    final String labelText = isTransaction ? 'Jumlah Transaksi' : 'Jumlah Data';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            dialogTitle,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dialogContent,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: labelText,
+                  hintText: 'Contoh: 5',
+                  filled: true,
+                  fillColor: Colors.blue[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  prefixIcon: const Icon(Icons.numbers, color: Colors.blue),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Jumlah tidak boleh kosong';
+                  }
+                  final number = int.tryParse(value);
+                  if (number == null || number <= 0) {
+                    return 'Masukkan angka yang valid (lebih dari 0)';
+                  }
+                  if (number > 50) {
+                    return 'Maksimal 50 data per input';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final quantity = int.tryParse(quantityController.text);
+                if (quantity != null && quantity > 0 && quantity <= 50) {
+                  Navigator.of(context).pop();
+
+                  // Navigate berdasarkan jenis menu
+                  if (isTransaction) {
+                    context.goNamed(
+                      Routes.inventoryTransactionForm,
+                      queryParameters: {'quantity': quantity.toString()},
+                    );
+                  } else {
+                    context.goNamed(
+                      Routes.inventoryForm,
+                      queryParameters: {'quantity': quantity.toString()},
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Masukkan jumlah yang valid (1-50)'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Lanjutkan'),
+            ),
+          ],
         );
       },
     );
@@ -106,11 +225,13 @@ class _AnimatedMenuCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String routeName;
+  final VoidCallback? onTap;
 
   const _AnimatedMenuCard({
     required this.icon,
     required this.title,
     required this.routeName,
+    this.onTap,
   });
 
   @override
@@ -136,7 +257,7 @@ class _AnimatedMenuCardState extends State<_AnimatedMenuCard> {
         onTapDown: _onTapDown,
         onTapUp: _onTapUp,
         onTapCancel: _onTapCancel,
-        onTap: () => context.goNamed(widget.routeName),
+        onTap: widget.onTap ?? () => context.goNamed(widget.routeName),
         child: AnimatedScale(
           scale: _scale,
           duration: const Duration(milliseconds: 150),

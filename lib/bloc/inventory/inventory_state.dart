@@ -23,7 +23,7 @@ class InventoryLoaded extends InventoryState {
 class CategoriesLoaded extends InventoryState {
   final List<String> categories;
 
-  const CategoriesLoaded(this.categories);
+  const CategoriesLoaded({required this.categories});
 
   @override
   List<Object> get props => [categories];
@@ -67,4 +67,19 @@ class InventoryStateCompleteEdit extends InventoryState {
 
   @override
   List<Object> get props => [message];
+}
+
+class ItemLoadedForTransaction extends InventoryState {
+  final String namaBarang;
+  final String kategori;
+  final int index;
+
+  const ItemLoadedForTransaction({
+    required this.namaBarang,
+    required this.kategori,
+    required this.index,
+  });
+
+  @override
+  List<Object> get props => [namaBarang, kategori, index];
 }

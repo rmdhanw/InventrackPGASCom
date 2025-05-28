@@ -107,9 +107,8 @@ class _CarpoolFormState extends State<CarpoolForm> {
       {bool isDeparture = false}) async {
     TimeOfDay initialTime = TimeOfDay.now();
 
-    // If selecting return time and departure time is already set, use departure time as minimum
+    // Jika memilih jam kembali dan jam berangkat sudah dipilih, gunakan jam berangkat + 1 sebagai saran
     if (!isDeparture && _selectedDepartureTime != null) {
-      // Set initial time to departure time + 1 hour as suggestion
       final suggestedHour = (_selectedDepartureTime!.hour + 1) % 24;
       initialTime = TimeOfDay(
           hour: suggestedHour, minute: _selectedDepartureTime!.minute);
@@ -126,22 +125,22 @@ class _CarpoolFormState extends State<CarpoolForm> {
       },
     );
 
-    if (picked != null && mounted) {
-      // Validate return time is not earlier than departure time
+    if (!context.mounted) return; // Hindari penggunaan context yang tidak valid
+
+    if (picked != null) {
+      // Validasi jam kembali tidak boleh lebih awal dari jam berangkat
       if (!isDeparture && _selectedDepartureTime != null) {
         final departureMinutes =
             _selectedDepartureTime!.hour * 60 + _selectedDepartureTime!.minute;
         final returnMinutes = picked.hour * 60 + picked.minute;
 
         if (returnMinutes <= departureMinutes) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Jam kembali harus lebih dari jam berangkat'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Jam kembali harus lebih dari jam berangkat'),
+              backgroundColor: Colors.red,
+            ),
+          );
           return;
         }
       }
@@ -149,12 +148,16 @@ class _CarpoolFormState extends State<CarpoolForm> {
       final formattedTime =
           '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
 
+      if (!mounted) {
+        return; // Pastikan widget masih ada sebelum memanggil setState
+      }
       setState(() {
         controller.text = formattedTime;
 
         if (isDeparture) {
           _selectedDepartureTime = picked;
-          // Clear return time if departure time is changed and new departure is after current return
+
+          // Jika jam kembali sudah diisi tapi jam berangkat baru melebihi jam kembali, kosongkan jam kembali
           if (_selectedReturnTime != null) {
             final newDepartureMinutes = picked.hour * 60 + picked.minute;
             final currentReturnMinutes =

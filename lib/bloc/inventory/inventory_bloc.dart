@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:inventrack/models/inventory.dart';
+import 'package:inventrack/screens/inventory/inventory_form.dart';
+import 'package:inventrack/screens/inventory/inventory_transactionform.dart';
 
 part 'inventory_event.dart';
 part 'inventory_state.dart';
@@ -11,14 +13,11 @@ part 'inventory_state.dart';
 class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
   final FirebaseFirestore _firestore;
 
-  // Cache untuk kategori agar tidak perlu fetch berulang kali
   List<String>? _cachedCategories;
 
-  // Constants untuk collection paths
   static const String _inventoryDataPath = 'inventory/data/items';
   static const String _inventoryTransactionPath = 'inventory/transaction/items';
 
-  // Date formatter sebagai static untuk reusability
   static final DateFormat _dateFormatter = DateFormat('dd-MM-yyyy');
 
   InventoryBloc({FirebaseFirestore? firestore})
@@ -26,18 +25,21 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
         super(InventoryInitial()) {
     on<LoadCategories>(_onLoadCategories);
     on<AddInventoryItem>(_onAddInventoryItem);
+    on<AddMultipleInventoryItems>(_onAddMultipleInventoryItems);
     on<LoadItemBySerial>(_onLoadItemBySerial);
+    on<LoadItemBySerialForTransaction>(
+        _onLoadItemBySerialForTransaction); // New handler
     on<AddTransaction>(_onAddTransaction);
+    on<AddMultipleTransactions>(
+        _onAddMultipleTransactions); // New handler for multiple transactions
     on<DeleteInventoryItem>(_onDeleteInventoryItem);
     on<InventoryEventEditInventory>(_onEditInventory);
     on<InventoryEventDeleteTransaction>(_onDeleteTransaction);
     on<InventoryEventEditTransaction>(_onEditTransaction);
   }
 
-  // Helper method untuk mendapatkan tanggal hari ini
   String get _todayFormatted => _dateFormatter.format(DateTime.now());
 
-  // Helper method untuk mendapatkan collection reference
   CollectionReference<Map<String, dynamic>> get _itemsCollection =>
       _firestore.collection(_inventoryDataPath);
 
@@ -46,9 +48,8 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
 
   Future<void> _onLoadCategories(
       LoadCategories event, Emitter<InventoryState> emit) async {
-    // Jika sudah ada cache, gunakan cache
     if (_cachedCategories != null) {
-      emit(InventoryLoaded(categories: _cachedCategories!));
+      emit(CategoriesLoaded(categories: _cachedCategories!));
       return;
     }
 
@@ -65,7 +66,7 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       }
 
       _cachedCategories = uniqueCategories.toList()..sort();
-      emit(InventoryLoaded(categories: _cachedCategories!));
+      emit(CategoriesLoaded(categories: _cachedCategories!));
     } catch (e) {
       emit(InventoryError('Gagal memuat kategori: $e'));
     }
@@ -114,6 +115,180 @@ class InventoryBloc extends Bloc<InventoryEvent, InventoryState> {
       emit(InventorySuccess('Item berhasil ditambahkan'));
     } catch (e) {
       emit(InventoryError('Gagal menambahkan barang: $e'));
+    }
+  }
+
+  // New method to handle multiple items
+  Future<void> _onAddMultipleInventoryItems(
+      AddMultipleInventoryItems event, Emitter<InventoryState> emit) async {
+    emit(InventoryLoading());
+
+    try {
+      // Validasi duplikasi nomor serial dalam batch
+      final serialNumbers = event.items
+          .map((item) => item.nomorSerialController.text.trim())
+          .toList();
+      final duplicateSerials = <String>[];
+
+      for (int i = 0; i < serialNumbers.length; i++) {
+        for (int j = i + 1; j < serialNumbers.length; j++) {
+          if (serialNumbers[i] == serialNumbers[j]) {
+            duplicateSerials.add(serialNumbers[i]);
+          }
+        }
+      }
+
+      if (duplicateSerials.isNotEmpty) {
+        emit(InventoryError(
+            'Nomor serial duplikat ditemukan: ${duplicateSerials.join(', ')}'));
+        return;
+      }
+
+      // Cek nomor serial yang sudah ada di database
+      final existingSerials = <String>[];
+      for (final serialNumber in serialNumbers) {
+        final doc = await _itemsCollection.doc(serialNumber).get();
+        if (doc.exists) {
+          existingSerials.add(serialNumber);
+        }
+      }
+
+      if (existingSerials.isNotEmpty) {
+        emit(InventoryError(
+            'Nomor serial sudah ada: ${existingSerials.join(', ')}'));
+        return;
+      }
+
+      // Process semua items dalam batch
+      final batch = _firestore.batch();
+      final newCategories = <String>{};
+
+      for (final item in event.items) {
+        final nomorSerial = item.nomorSerialController.text.trim();
+        final namaBarang = item.namaBarangController.text.trim();
+        final kategori = item.getKategori();
+        final status = item.selectedStatusBarang!;
+        final kondisi = item.selectedKondisiBarang!;
+        final keterangan = item.keteranganController.text.trim();
+
+        final itemRef = _itemsCollection.doc(nomorSerial);
+        batch.set(itemRef, {
+          'kategori': kategori,
+          'namaBarang': namaBarang,
+          'nomorSerial': nomorSerial,
+          'tanggal': _todayFormatted,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        final transactionRef = _transactionsCollection.doc();
+        batch.set(transactionRef, {
+          'id': transactionRef.id,
+          'nomorSerial': nomorSerial,
+          'kategori': kategori,
+          'namaBarang': namaBarang,
+          'status': status,
+          'kondisi': kondisi,
+          'keterangan': keterangan,
+          'tanggal': _todayFormatted,
+        });
+
+        if (_cachedCategories != null &&
+            !_cachedCategories!.contains(kategori)) {
+          newCategories.add(kategori);
+        }
+      }
+
+      await batch.commit();
+
+      if (newCategories.isNotEmpty) {
+        _cachedCategories?.addAll(newCategories);
+        _cachedCategories?.sort();
+      }
+
+      final itemCount = event.items.length;
+      emit(InventorySuccess('$itemCount item berhasil ditambahkan'));
+    } catch (e) {
+      emit(InventoryError('Gagal menambahkan items: $e'));
+    }
+  }
+
+  // New handler untuk load item berdasarkan serial number untuk transaction form
+  Future<void> _onLoadItemBySerialForTransaction(
+      LoadItemBySerialForTransaction event,
+      Emitter<InventoryState> emit) async {
+    try {
+      final doc = await _itemsCollection.doc(event.serialNumber).get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        emit(ItemLoadedForTransaction(
+          namaBarang: data['namaBarang'] ?? '',
+          kategori: data['kategori'] ?? '',
+          index: event.index,
+        ));
+      } else {
+        emit(InventoryError(
+            'Data dengan nomor serial ${event.serialNumber} tidak ditemukan.'));
+      }
+    } catch (e) {
+      emit(InventoryError('Gagal memuat data: $e'));
+    }
+  }
+
+  // New handler untuk menambahkan multiple transactions
+  Future<void> _onAddMultipleTransactions(
+      AddMultipleTransactions event, Emitter<InventoryState> emit) async {
+    emit(InventoryLoading());
+
+    try {
+      // Validasi bahwa semua nomor serial ada di database
+      final missingSerials = <String>[];
+
+      for (final transaction in event.transactions) {
+        final nomorSerial = transaction.nomorSerialController.text.trim();
+        final doc = await _itemsCollection.doc(nomorSerial).get();
+        if (!doc.exists) {
+          missingSerials.add(nomorSerial);
+        }
+      }
+
+      if (missingSerials.isNotEmpty) {
+        emit(InventoryError(
+            'Nomor serial tidak ditemukan di inventory: ${missingSerials.join(', ')}'));
+        return;
+      }
+
+      // Process semua transactions dalam batch
+      final batch = _firestore.batch();
+
+      for (final transaction in event.transactions) {
+        final nomorSerial = transaction.nomorSerialController.text.trim();
+        final namaBarang = transaction.namaBarangController.text.trim();
+        final kategori = transaction.selectedKategori!;
+        final status = transaction.selectedStatus!;
+        final kondisi = transaction.selectedKondisi!;
+        final keterangan = transaction.keteranganController.text.trim();
+
+        final transactionRef = _transactionsCollection.doc();
+        batch.set(transactionRef, {
+          'id': transactionRef.id,
+          'nomorSerial': nomorSerial,
+          'kategori': kategori,
+          'namaBarang': namaBarang,
+          'status': status,
+          'kondisi': kondisi,
+          'keterangan': keterangan.isEmpty ? '-' : keterangan,
+          'tanggal': _todayFormatted,
+        });
+      }
+
+      await batch.commit();
+
+      final transactionCount = event.transactions.length;
+      emit(
+          InventorySuccess('$transactionCount transaksi berhasil ditambahkan'));
+    } catch (e) {
+      emit(InventoryError('Gagal menambahkan transaksi: $e'));
     }
   }
 

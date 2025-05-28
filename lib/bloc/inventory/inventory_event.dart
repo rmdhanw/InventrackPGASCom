@@ -134,3 +134,32 @@ class InventoryEventDeleteTransaction extends InventoryEvent {
   @override
   List<Object> get props => [id];
 }
+
+class AddMultipleInventoryItems extends InventoryEvent {
+  final List<ItemFormData> items;
+
+  const AddMultipleInventoryItems({required this.items});
+
+  @override
+  List<Object> get props => [items];
+}
+
+class LoadItemBySerialForTransaction extends InventoryEvent {
+  final String serialNumber;
+  final int index; // index untuk mengetahui form transaction yang mana
+
+  const LoadItemBySerialForTransaction(this.serialNumber, this.index);
+
+  @override
+  List<Object> get props => [serialNumber, index];
+}
+
+// Event untuk menambahkan multiple transactions
+class AddMultipleTransactions extends InventoryEvent {
+  final List<TransactionFormData> transactions;
+
+  const AddMultipleTransactions({required this.transactions});
+
+  @override
+  List<Object> get props => [transactions];
+}
