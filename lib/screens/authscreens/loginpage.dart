@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventrack/bloc/bloc.dart';
 import 'package:inventrack/routes/router_name.dart';
@@ -14,6 +15,42 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController email = TextEditingController();
   final TextEditingController password = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _secureStorage = const FlutterSecureStorage();
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredentials(); // TAMBAHKAN: Panggil fungsi untuk memuat data
+  }
+
+  Future<void> _loadCredentials() async {
+    try {
+      final savedEmail = await _secureStorage.read(key: 'email');
+      final savedPassword = await _secureStorage.read(key: 'password');
+
+      if (savedEmail != null && savedPassword != null) {
+        setState(() {
+          email.text = savedEmail;
+          password.text = savedPassword;
+          _rememberMe = true;
+        });
+      }
+    } catch (e) {
+      // Handle error jika gagal membaca dari secure storage
+      debugPrint("Error loading credentials: $e");
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    await _secureStorage.write(key: 'email', value: email.text);
+    await _secureStorage.write(key: 'password', value: password.text);
+  }
+
+  Future<void> _clearCredentials() async {
+    await _secureStorage.delete(key: 'email');
+    await _secureStorage.delete(key: 'password');
+  }
 
   @override
   void dispose() {
@@ -28,6 +65,11 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthStateAuthenticated) {
+            if (_rememberMe) {
+              _saveCredentials();
+            } else {
+              _clearCredentials();
+            }
             context.goNamed(Routes.home);
           } else if (state is AuthStateError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -55,6 +97,12 @@ class _LoginPageState extends State<LoginPage> {
                     isTabletOrLarger: isTabletOrLarger,
                     maxWidth: constraints.maxWidth,
                     maxHeight: constraints.maxHeight,
+                    rememberMe: _rememberMe,
+                    onRememberMeChanged: (value) {
+                      setState(() {
+                        _rememberMe = value ?? false;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -73,6 +121,8 @@ class LoginCard extends StatelessWidget {
   final bool isTabletOrLarger;
   final double maxWidth;
   final double maxHeight;
+  final bool rememberMe;
+  final ValueChanged<bool?> onRememberMeChanged;
 
   const LoginCard({
     super.key,
@@ -82,6 +132,8 @@ class LoginCard extends StatelessWidget {
     required this.isTabletOrLarger,
     required this.maxWidth,
     required this.maxHeight,
+    required this.rememberMe,
+    required this.onRememberMeChanged,
   });
 
   @override
@@ -190,6 +242,16 @@ class LoginCard extends StatelessWidget {
               },
             ),
             SizedBox(height: spacing),
+            CheckboxListTile(
+              value: rememberMe,
+              onChanged: onRememberMeChanged,
+              title: const Text("Ingat Saya"),
+              controlAffinity:
+                  ListTileControlAffinity.leading, // Checkbox di kiri
+              contentPadding: EdgeInsets.zero, // Hapus padding default
+              dense: true,
+            ),
+            SizedBox(height: spacing * 0.5),
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, state) {
                 return SizedBox(
