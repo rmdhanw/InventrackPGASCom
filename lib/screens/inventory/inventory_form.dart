@@ -316,7 +316,7 @@ class _InventoryFormState extends State<InventoryForm> {
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: value,
+        initialValue: value,
         items: items
             .map((item) => DropdownMenuItem(value: item, child: Text(item)))
             .toList(),
@@ -342,7 +342,7 @@ class _InventoryFormState extends State<InventoryForm> {
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: item.selectedKategori,
+        initialValue: item.selectedKategori,
         items: extendedItems.isEmpty
             ? [const DropdownMenuItem(value: 'Lainnya', child: Text('Lainnya'))]
             : extendedItems

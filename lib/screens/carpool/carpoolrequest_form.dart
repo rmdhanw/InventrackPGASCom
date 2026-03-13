@@ -469,7 +469,7 @@ class RequestCarpoolState extends State<RequestCarpool>
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: selectedValue,
+        initialValue: selectedValue,
         items: items
             .map((val) => DropdownMenuItem(value: val, child: Text(val)))
             .toList(),

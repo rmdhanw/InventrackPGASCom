@@ -218,7 +218,7 @@ class _InventoryViewState extends State<InventoryView> {
               ),
               hintText: "Pilih Kategori",
             ),
-            value: selectedCategory,
+            initialValue: selectedCategory,
             items: categories
                 .map((category) => DropdownMenuItem(
                       value: category,

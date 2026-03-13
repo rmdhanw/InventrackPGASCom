@@ -238,7 +238,7 @@ class _InventoryDetailState extends State<InventoryDetail> {
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: extendedItems.contains(_selectedKategori)
+        initialValue: extendedItems.contains(_selectedKategori)
             ? _selectedKategori
             : null,
         items: extendedItems.isEmpty

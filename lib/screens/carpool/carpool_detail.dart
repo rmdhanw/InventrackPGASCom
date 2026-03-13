@@ -298,7 +298,7 @@ class _CarpoolDetailState extends State<CarpoolDetail> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: DropdownButtonFormField<String>(
-        value: selectedValue,
+        initialValue: selectedValue,
         decoration: InputDecoration(
           labelText: label,
           filled: true,

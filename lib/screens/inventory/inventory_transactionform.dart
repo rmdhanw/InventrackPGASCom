@@ -423,7 +423,7 @@ class _InventoryTransactionFormState extends State<InventoryTransactionForm> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           filled: true,

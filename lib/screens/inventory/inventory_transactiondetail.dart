@@ -295,7 +295,7 @@ class _InventoryTransactionDetailState
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: extendedItems.contains(_selectedKategori)
+        initialValue: extendedItems.contains(_selectedKategori)
             ? _selectedKategori
             : null,
         items: extendedItems.isEmpty
@@ -329,7 +329,7 @@ class _InventoryTransactionDetailState
           fillColor: Colors.blue[100],
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        value: items.contains(value) ? value : null,
+        initialValue: items.contains(value) ? value : null,
         items: items
             .map((val) => DropdownMenuItem(value: val, child: Text(val)))
             .toList(),

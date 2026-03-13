@@ -274,7 +274,7 @@ class _CarpoolViewState extends State<CarpoolView> {
                 ),
               ),
               hint: const Text("Pilih Pengemudi"),
-              value: selectedDriver,
+              initialValue: selectedDriver,
               items: [
                 const DropdownMenuItem(value: "Semua", child: Text("Semua")),
                 ..._getUniqueDrivers()

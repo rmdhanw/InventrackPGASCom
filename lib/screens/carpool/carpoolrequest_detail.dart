@@ -265,7 +265,7 @@ class _CarpoolDetailState extends State<CarpoolRequestDetail>
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: DropdownButtonFormField<String>(
-        value: displayValue,
+        initialValue: displayValue,
         validator: (value) =>
             value == null || value.isEmpty ? 'Tidak boleh kosong' : null,
         decoration: InputDecoration(
