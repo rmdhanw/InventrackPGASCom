@@ -96,12 +96,3 @@ Jalankan aplikasi di emulator atau perangkat fisik menggunakan `--dart-define`:
 flutter run --dart-define=TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN" --dart-define=TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
 
----
-
-##  Keamanan (Security Best Practices)
-
-- File sensitif seperti `.env`, `key.properties`, `google-services.json`, dan `GoogleService-Info.plist` secara otomatis diabaikan oleh Git via `.gitignore`.
-- Seluruh API Token dan Kredensial tidak di-*hardcode* di dalam berkas Dart source code.
-
----
-
