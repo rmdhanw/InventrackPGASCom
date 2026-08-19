@@ -1,42 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inventrack/domain/entities/carpool_entity.dart';
 
-class Carpool {
-  String? namapengguna;
-  String? satuanKerja;
-  String? tujuan;
-  String? keperluan;
-  String? jamBerangkat;
-  String? jamKembali;
-  String? kendaraan;
-  String? pengemudi;
-  String? kmAwal;
-  String? kmAkhir;
-  String? statusDriver;
-  DateTime? createdAt;
-  String id;
-  String formattedDate;
-  String? tanggalRequest;
-  String? namaPenumpang;
-  String? handle;
-
+class Carpool extends CarpoolEntity {
   Carpool({
-    this.namapengguna,
-    this.satuanKerja,
-    this.tujuan,
-    this.keperluan,
-    this.jamBerangkat,
-    this.jamKembali,
-    this.kendaraan,
-    this.pengemudi,
-    this.kmAwal,
-    this.kmAkhir,
-    this.createdAt,
-    required this.id,
-    this.statusDriver,
-    required this.formattedDate,
-    this.tanggalRequest,
-    this.namaPenumpang,
-    this.handle,
+    super.namapengguna,
+    super.satuanKerja,
+    super.tujuan,
+    super.keperluan,
+    super.jamBerangkat,
+    super.jamKembali,
+    super.kendaraan,
+    super.pengemudi,
+    super.kmAwal,
+    super.kmAkhir,
+    super.createdAt,
+    required super.id,
+    super.statusDriver,
+    required super.formattedDate,
+    super.tanggalRequest,
+    super.namaPenumpang,
+    super.handle,
   });
 
   factory Carpool.fromJson(Map<String, dynamic> json) => Carpool(
@@ -52,7 +35,9 @@ class Carpool {
         kmAkhir: json["kmAkhir"] ?? "",
         statusDriver: json["statusDriver"] ?? "",
         createdAt: json["createdAt"] != null
-            ? (json["createdAt"] as Timestamp).toDate()
+            ? (json["createdAt"] is Timestamp
+                ? (json["createdAt"] as Timestamp).toDate()
+                : json["createdAt"] as DateTime)
             : null,
         id: json["id"] ?? "",
         formattedDate: json["formattedDate"] ?? "",

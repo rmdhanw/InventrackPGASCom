@@ -1,26 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:inventrack/domain/entities/inventory_entity.dart';
 
-class Inventory {
-  String id;
-  String? kategori;
-  String? namaBarang;
-  String? nomorSerial;
-  String? tanggal;
-  DateTime? timestamp;
-  String? kondisi;
-  String? status;
-  String? keterangan;
-
+class Inventory extends InventoryEntity {
   Inventory({
-    required this.id,
-    this.kategori,
-    this.namaBarang,
-    this.nomorSerial,
-    this.tanggal,
-    this.timestamp,
-    this.kondisi,
-    this.status,
-    this.keterangan,
+    required super.id,
+    super.kategori,
+    super.namaBarang,
+    super.nomorSerial,
+    super.tanggal,
+    super.timestamp,
+    super.kondisi,
+    super.status,
+    super.keterangan,
   });
 
   // Regular fromJson method
@@ -32,7 +23,9 @@ class Inventory {
       nomorSerial: json['nomorSerial'],
       tanggal: json['tanggal'],
       timestamp: json['timestamp'] != null
-          ? (json['timestamp'] as dynamic).toDate()
+          ? (json['timestamp'] is Timestamp
+              ? (json['timestamp'] as Timestamp).toDate()
+              : json['timestamp'] as DateTime)
           : null,
       kondisi: json['kondisi'],
       status: json['status'],
@@ -40,7 +33,6 @@ class Inventory {
     );
   }
 
-  // Add a specific method for creating from Firestore DocumentSnapshot
   factory Inventory.fromFirestore(
       DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data() ?? {};
@@ -57,7 +49,6 @@ class Inventory {
       'namaBarang': namaBarang,
       'nomorSerial': nomorSerial,
       'tanggal': tanggal,
-      // We don't typically include timestamp in toJson as Firestore will handle it
     };
   }
 }

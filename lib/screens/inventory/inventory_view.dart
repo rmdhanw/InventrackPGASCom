@@ -72,8 +72,7 @@ class _InventoryViewState extends State<InventoryView> {
         .map((snapshot) {
       List<Inventory> items = [];
       for (var doc in snapshot.docs) {
-        Inventory item = Inventory.fromJson(doc.data());
-        item.id = doc.id;
+        Inventory item = Inventory.fromJson(doc.data(), docID: doc.id);
         items.add(item);
       }
       return items;

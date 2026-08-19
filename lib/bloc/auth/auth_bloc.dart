@@ -1,16 +1,15 @@
 import 'package:bloc/bloc.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:inventrack/domain/repositories/auth_repository.dart';
 import 'package:inventrack/utils/user_role.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthRepository authRepository;
 
-  AuthBloc() : super(AuthStateLogout()) {
+  AuthBloc({required this.authRepository}) : super(AuthStateLogout()) {
     on<AuthEventLogin>(_onLogin);
     on<AuthEventSignUp>(_onSignUp);
     on<AuthEventLogout>(_onLogout);
@@ -20,33 +19,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _authMethods(
       emit: emit,
       action: () async {
-        final UserCredential userCredential =
-            await _auth.signInWithEmailAndPassword(
+        final userEntity = await authRepository.login(
           email: event.email,
           password: event.pass,
         );
 
-        final User? user = userCredential.user;
-        if (user == null) {
-          throw Exception("User tidak ditemukan.");
-        }
-
-        // 🔍 Ambil handle dan role dari Firestore
-        final QuerySnapshot snapshot = await _firestore
-            .collectionGroup("users")
-            .where("uid", isEqualTo: user.uid)
-            .get();
-
-        if (snapshot.docs.isEmpty) {
-          throw Exception("Data user tidak ditemukan di Firestore.");
-        }
-
-        final doc = snapshot.docs.first;
-        final data = doc.data() as Map<String, dynamic>;
-        final handle = data['handle'] ?? 'user';
-
         emit(AuthStateAuthenticated(
-            uid: user.uid, email: user.email ?? '', handle: handle));
+          uid: userEntity.uid,
+          email: userEntity.email,
+          handle: userEntity.handle,
+        ));
       },
     );
   }
@@ -55,29 +37,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _authMethods(
       emit: emit,
       action: () async {
-        UserCredential userCredential =
-            await _auth.createUserWithEmailAndPassword(
+        await authRepository.signUp(
           email: event.email,
           password: event.pass,
+          name: event.name,
+          handle: event.handle,
+          role: event.role,
         );
-
-        User? user = userCredential.user;
-        if (user == null) {
-          throw Exception("User tidak ditemukan setelah sign-up.");
-        }
-
-        await _firestore
-            .collection("roles")
-            .doc(event.role)
-            .collection("users")
-            .doc(user.uid)
-            .set({
-          'uid': user.uid,
-          'email': event.email,
-          'name': event.name,
-          'createdAt': FieldValue.serverTimestamp(),
-          'handle': event.handle,
-        });
 
         emit(AuthStateSignUp());
       },
@@ -88,7 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _authMethods(
       emit: emit,
       action: () async {
-        await _auth.signOut();
+        await authRepository.logout();
         emit(AuthStateLogout());
       },
     );

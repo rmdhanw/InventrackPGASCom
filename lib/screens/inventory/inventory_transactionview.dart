@@ -19,8 +19,6 @@ class InventoryTransactionView extends StatefulWidget {
 
 class _InventoryTransactionViewState extends State<InventoryTransactionView>
     with SingleTickerProviderStateMixin {
-  final InventoryBloc _inventoryBloc = InventoryBloc();
-
   String _startDate = DateFormat('dd-MM-yyyy')
       .format(DateTime.now().subtract(const Duration(days: 30)));
   String _endDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
@@ -377,7 +375,7 @@ class _InventoryTransactionViewState extends State<InventoryTransactionView>
                     width: contentWidth,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: StreamBuilder<List<Inventory>>(
-                      stream: _inventoryBloc.streamInventoryTransactions(
+                      stream: context.read<InventoryBloc>().streamInventoryTransactions(
                         startDate: _startDate,
                         endDate: _endDate,
                         status: _selectedStatus == 'Semua Status'

@@ -15,8 +15,6 @@ class CarpoolView extends StatefulWidget {
 }
 
 class _CarpoolViewState extends State<CarpoolView> {
-  CarpoolBloc carpool = CarpoolBloc();
-
   DateTime firstDay = DateTime.now().subtract(const Duration(days: 365));
   DateTime lastDay = DateTime.now().add(const Duration(days: 365));
   DateTime focusedDay = DateTime.now();
@@ -27,7 +25,6 @@ class _CarpoolViewState extends State<CarpoolView> {
   Map<DateTime, List<Carpool>> carpoolEvents = {};
   List<Carpool> selectedEvents = [];
 
-  // Cache untuk menyimpan data yang sudah di-load
   Map<String, Map<DateTime, List<Carpool>>> monthlyCache = {};
 
   bool isLoading = true;
@@ -79,10 +76,8 @@ class _CarpoolViewState extends State<CarpoolView> {
     });
 
     try {
-      // OPTIMASI 1: Query dengan rentang tanggal yang lebih efisien
       await _loadCarpoolDataOptimized();
 
-      // Simpan ke cache
       monthlyCache[monthKey] = Map.from(carpoolEvents);
     } catch (e) {
       debugPrint('Error loading carpool data: $e');
@@ -97,20 +92,16 @@ class _CarpoolViewState extends State<CarpoolView> {
     });
   }
 
-  // OPTIMASI 1: Gunakan query yang lebih efisien
   Future<void> _loadCarpoolDataOptimized() async {
     DateTime firstDayOfMonth = DateTime(focusedDay.year, focusedDay.month, 1);
     DateTime lastDayOfMonth =
         DateTime(focusedDay.year, focusedDay.month + 1, 0);
 
-    // OPTIMASI 2: Batasi query hanya untuk hari-hari yang mungkin ada data
     List<String> dateRange = _getDateRange(
         _formatDate(firstDayOfMonth), _formatDate(lastDayOfMonth));
 
-    // OPTIMASI 3: Query paralel dengan batching
     List<Future<void>> queryFutures = [];
 
-    // Bagi query menjadi batch untuk menghindari terlalu banyak concurrent request
     const int batchSize = 5;
 
     for (int i = 0; i < dateRange.length; i += batchSize) {
@@ -137,7 +128,7 @@ class _CarpoolViewState extends State<CarpoolView> {
           .doc(date)
           .collection("carpoolItems")
           .orderBy("createdAt", descending: true)
-          .limit(50) // OPTIMASI 4: Batasi jumlah dokumen yang diambil
+          .limit(50)
           .withConverter<Carpool>(
             fromFirestore: (snapshot, _) => Carpool.fromJson(snapshot.data()!),
             toFirestore: (carpool, _) => carpool.toJson(),
@@ -148,7 +139,6 @@ class _CarpoolViewState extends State<CarpoolView> {
         List<Carpool> carpools = snapshot.docs.map((e) => e.data()).toList();
         DateTime dateKey = _parseDate(date);
 
-        // Gunakan synchronized update untuk menghindari race condition
         if (mounted) {
           setState(() {
             carpoolEvents[DateTime(dateKey.year, dateKey.month, dateKey.day)] =
@@ -195,7 +185,6 @@ class _CarpoolViewState extends State<CarpoolView> {
     });
   }
 
-  // OPTIMASI 5: Cache unique drivers
   List<String>? _cachedDrivers;
   List<String> _getUniqueDrivers() {
     if (_cachedDrivers != null) return _cachedDrivers!;
@@ -235,9 +224,7 @@ class _CarpoolViewState extends State<CarpoolView> {
       ),
       body: Column(
         children: [
-          // OPTIMASI 6: Lazy loading untuk dropdown
           _buildDriverDropdown(),
-
           if (isLoading)
             const Expanded(
               child: Center(
@@ -287,7 +274,7 @@ class _CarpoolViewState extends State<CarpoolView> {
               onChanged: (value) {
                 setState(() {
                   selectedDriver = value;
-                  _cachedDrivers = null; // Reset cache ketika filter berubah
+                  _cachedDrivers = null;
                   if (selectedDay != null) {
                     _updateSelectedEvents(selectedDay!);
                   }
@@ -327,7 +314,7 @@ class _CarpoolViewState extends State<CarpoolView> {
           onPageChanged: (focusedDay) {
             setState(() {
               this.focusedDay = focusedDay;
-              _cachedDrivers = null; // Reset cache ketika pindah bulan
+              _cachedDrivers = null;
             });
             _loadCarpoolDataForMonth();
           },
@@ -502,7 +489,6 @@ class _CarpoolViewState extends State<CarpoolView> {
 
   @override
   void dispose() {
-    // Bersihkan cache jika perlu
     monthlyCache.clear();
     super.dispose();
   }
