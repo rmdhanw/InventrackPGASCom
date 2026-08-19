@@ -1,4 +1,4 @@
-# 📦 Inventrack PGASCom
+# Inventrack PGASCom
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.6+-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.6+-0175C2?style=for-the-badge&logo=dart&logoColor=white)
@@ -7,31 +7,29 @@
 
 **Inventrack** adalah aplikasi mobile berbasis Flutter yang dirancang khusus untuk memenuhi kebutuhan operasional **PGASCom** dalam mengelola sistem inventaris barang dan pengajuan kendaraan operasional (*carpool*). 
 
-Aplikasi ini dibangun menggunakan prinsip **Clean Architecture**, **BLoC Pattern** untuk state management, dan diintegrasikan dengan **Firebase Services** serta notifikasi otomatis ke **Telegram Bot**.
+Aplikasi ini dibangun menggunakan prinsip  **BLoC Pattern** untuk state management, dan diintegrasikan dengan **Firebase Services** serta notifikasi otomatis ke **Telegram Bot**.
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 🔐 1. Autentikasi & Manajemen Pengguna
+###  1. Autentikasi & Manajemen Pengguna
 - **Login & Register:** Akses aman pengguna dengan verifikasi Firebase Authentication.
 - **Peran Pengguna (*User Roles*):** Manajemen hak akses berbasis peran (`User`, `Admin`, `Superadmin`).
 
-### 📑 2. Manajemen Inventaris (*Inventory Management*)
+###  2. Manajemen Inventaris (*Inventory Management*)
 - **Pencatatan Barang:** Tambah, edit, dan hapus barang inventaris secara individu maupun *batch write*.
 - **Pelacakan Transaksi:** Lacak riwayat masuk/keluar barang berdasarkan nomor serial barang.
 - **Kategori Efisien:** Pemfilteran kategori barang cepat yang dioptimalkan dengan sistem *metadata caching* untuk mengurangi read operasi Firestore.
 
-### 🚗 3. Operasional Carpool (*Carpool & Vehicle Request*)
+### 3. Operasional Carpool (*Carpool & Vehicle Request*)
 - **Pengajuan Permintaan Carpool:** Formulir pendaftaran dan pengajuan permintaan kendaraan operasional.
 - **Status Pengemudi & Jarak Tempuh:** Pantau status driver, jadwal jam berangkat/kembali, dan kilometer (KM) awal/akhir.
 - **Notifikasi Telegram Otomatis:** Setiap kali permintaan carpool diajukan, sistem secara otomatis mengirimkan pesan notifikasi ke grup Telegram operasional.
 
 ---
 
-## 🏗️ Arsitektur Aplikasi (Clean Architecture)
-
-Proyek ini mengadopsi standar **Clean Architecture** (Dependency Inversion) untuk memisahkan tanggung jawab kode secara tegas (*Separation of Concerns*):
+## Arsitektur Aplikasi 
 
 ```text
 lib/
@@ -52,7 +50,7 @@ lib/
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
+##  Teknologi yang Digunakan
 
 * **Framework:** [Flutter](https://flutter.dev/) (Dart SDK `^3.6.2`)
 * **State Management:** [flutter_bloc](https://pub.dev/packages/flutter_bloc) & [equatable](https://pub.dev/packages/equatable)
@@ -63,7 +61,7 @@ lib/
 
 ---
 
-## 🚀 Panduan Penggunaan & Instalasi
+##  Panduan Penggunaan & Instalasi
 
 ### Prasyarat
 - Flutter SDK `^3.6.2` atau versi lebih baru
@@ -100,13 +98,10 @@ flutter run --dart-define=TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN" --dart-define=TELE
 
 ---
 
-## 🔒 Keamanan (Security Best Practices)
+##  Keamanan (Security Best Practices)
 
 - File sensitif seperti `.env`, `key.properties`, `google-services.json`, dan `GoogleService-Info.plist` secara otomatis diabaikan oleh Git via `.gitignore`.
 - Seluruh API Token dan Kredensial tidak di-*hardcode* di dalam berkas Dart source code.
 
 ---
 
-## 📄 Lisensi
-
-Hak Cipta © 2026 **Inventrack PGASCom**.
