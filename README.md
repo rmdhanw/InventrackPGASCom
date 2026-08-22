@@ -3,7 +3,6 @@
 ![Flutter](https://img.shields.io/badge/Flutter-3.6+-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.6+-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-4CAF50?style=for-the-badge)
 
 **Inventrack** adalah aplikasi mobile berbasis Flutter yang dirancang khusus untuk memenuhi kebutuhan operasional **PGASCom** dalam mengelola sistem inventaris barang dan pengajuan kendaraan operasional (*carpool*). 
 
